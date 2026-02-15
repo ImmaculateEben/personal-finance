@@ -516,6 +516,8 @@ const Storage = {
                 category.actual = parseFloat(value) || 0;
             } else if (field === 'name') {
                 category.name = value;
+            } else if (field === 'color') {
+                category.color = value;
             }
             return this.saveBudget(budget);
         }
