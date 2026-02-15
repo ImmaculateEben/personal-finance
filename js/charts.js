@@ -24,13 +24,43 @@ const ChartManager = {
             legend: {
                 labels: {
                     font: {
-                        family: "'Inter', sans-serif"
+                        family: "'Inter', sans-serif",
+                        size: 12
                     },
                     usePointStyle: true,
-                    padding: 20
+                    padding: 15
                 }
             }
         }
+    },
+    
+    /**
+     * Get responsive options based on screen size
+     */
+    getResponsiveOptions() {
+        const isMobile = window.innerWidth <= 768;
+        const isSmallMobile = window.innerWidth <= 480;
+        
+        const fontSize = isSmallMobile ? 9 : (isMobile ? 10 : 12);
+        const padding = isSmallMobile ? 10 : (isMobile ? 12 : 15);
+        
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        font: {
+                            family: "'Inter', sans-serif",
+                            size: fontSize
+                        },
+                        usePointStyle: true,
+                        padding: padding,
+                        boxWidth: isMobile ? 6 : 8
+                    }
+                }
+            }
+        };
     },
     
     /**
@@ -76,7 +106,7 @@ const ChartManager = {
         };
         
         const options = {
-            ...this.defaultOptions,
+            ...this.getResponsiveOptions(),
             scales: {
                 x: {
                     grid: {
@@ -104,7 +134,7 @@ const ChartManager = {
                 }
             },
             plugins: {
-                ...this.defaultOptions.plugins,
+                ...this.getResponsiveOptions().plugins,
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -161,10 +191,10 @@ const ChartManager = {
         };
         
         const options = {
-            ...this.defaultOptions,
+            ...this.getResponsiveOptions(),
             cutout: '60%',
             plugins: {
-                ...this.defaultOptions.plugins,
+                ...this.getResponsiveOptions().plugins,
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -213,10 +243,10 @@ const ChartManager = {
         };
         
         const options = {
-            ...this.defaultOptions,
+            ...this.getResponsiveOptions(),
             cutout: '70%',
             plugins: {
-                ...this.defaultOptions.plugins,
+                ...this.getResponsiveOptions().plugins,
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -284,10 +314,10 @@ const ChartManager = {
         };
         
         const options = {
-            ...this.defaultOptions,
+            ...this.getResponsiveOptions(),
             cutout: '55%',
             plugins: {
-                ...this.defaultOptions.plugins,
+                ...this.getResponsiveOptions().plugins,
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -367,7 +397,7 @@ const ChartManager = {
         };
         
         const options = {
-            ...this.defaultOptions,
+            ...this.getResponsiveOptions(),
             indexAxis: 'y',
             scales: {
                 x: {
@@ -388,7 +418,7 @@ const ChartManager = {
                 }
             },
             plugins: {
-                ...this.defaultOptions.plugins,
+                ...this.getResponsiveOptions().plugins,
                 tooltip: {
                     callbacks: {
                         label: function(context) {
