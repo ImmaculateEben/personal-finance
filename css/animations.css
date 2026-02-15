@@ -1,0 +1,416 @@
+/* Animations */
+
+/* Fade In Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade Out Animation */
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+/* Slide In Left */
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Slide In Right */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Scale In Animation */
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Shake Animation for errors */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+/* Bounce Animation */
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Toast Slide In */
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Modal Fade In */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Modal Scale In */
+@keyframes modalScaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Slide Out Down */
+@keyframes slideOutDown {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+/* Confetti Fall Animation */
+@keyframes confettiFall {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* Celebration Pop Animation */
+@keyframes celebrationPop {
+    0% {
+        transform: scale(1);
+    }
+    25% {
+        transform: scale(1.1);
+    }
+    50% {
+        transform: scale(1);
+    }
+    75% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Success Glow Animation */
+@keyframes successGlow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+    }
+}
+
+/* Progress Bar Fill Animation */
+@keyframes progressFill {
+    from {
+        width: 0;
+    }
+}
+
+/* Budget Category Pop Animation */
+@keyframes budgetCategoryPop {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Application Classes */
+
+/* Fade In */
+.fade-in {
+    animation: fadeIn var(--transition-normal) forwards;
+}
+
+/* Fade Out */
+.fade-out {
+    animation: fadeOut var(--transition-normal) forwards;
+}
+
+/* Slide In Left */
+.slide-in-left {
+    animation: slideInLeft var(--transition-normal) forwards;
+}
+
+/* Slide In Right */
+.slide-in-right {
+    animation: slideInRight var(--transition-normal) forwards;
+}
+
+/* Scale In */
+.scale-in {
+    animation: scaleIn var(--transition-normal) forwards;
+}
+
+/* Pulse */
+.pulse {
+    animation: pulse 0.3s ease-in-out;
+}
+
+/* Transaction item animation */
+.transaction-item {
+    animation: slideInLeft var(--transition-normal) forwards;
+    transform-origin: left center;
+}
+
+.transaction-item.removing {
+    animation: slideOutDown var(--transition-normal) forwards;
+}
+
+/* Card hover animation */
+.card {
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Button click animation */
+.btn:active {
+    transform: scale(0.98);
+}
+
+/* Toast animation */
+.toast.show {
+    animation: toastSlideIn var(--transition-normal) forwards;
+}
+
+/* Modal animations */
+.modal.show .modal-overlay {
+    animation: modalFadeIn var(--transition-fast) forwards;
+}
+
+.modal.show .modal-content {
+    animation: modalScaleIn var(--transition-normal) forwards;
+}
+
+/* Theme toggle animation */
+.theme-toggle {
+    transition: transform var(--transition-fast);
+}
+
+.theme-toggle:hover {
+    transform: rotate(15deg);
+}
+
+/* Summary card count animation */
+.card-value {
+    transition: color var(--transition-fast);
+}
+
+.card-value.updated {
+    animation: pulse 0.3s ease-in-out;
+}
+
+/* Loading skeleton */
+@keyframes skeleton {
+    0% {
+        background-position: -200px 0;
+    }
+    100% {
+        background-position: calc(200px + 100%) 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, var(--bg-tertiary) 0px, var(--border-color) 40px, var(--bg-tertiary) 80px);
+    background-size: 200px 100%;
+    animation: skeleton 1.5s infinite ease-in-out;
+    border-radius: 4px;
+}
+
+/* Chart loading animation */
+.chart-container {
+    opacity: 0;
+    animation: fadeIn var(--transition-slow) forwards;
+}
+
+.chart-container canvas {
+    animation: scaleIn var(--transition-slow) forwards;
+}
+
+/* Hover effects */
+.transaction-item:hover {
+    transform: translateX(4px);
+}
+
+/* Delete button hover */
+.delete-btn:hover {
+    animation: shake 0.3s ease-in-out;
+}
+
+/* Budget Section Animations */
+
+/* Confetti container */
+.confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+/* Celebration for fully funded */
+.fully-funded {
+    animation: successGlow 2s ease-in-out infinite;
+}
+
+/* Progress bar animation */
+.budget-progress-fill {
+    animation: progressFill 0.5s ease-out forwards;
+}
+
+/* Budget category hover */
+.budget-category-item:hover {
+    animation: budgetCategoryPop 0.3s ease-out;
+}
+
+/* Celebration badge pulse */
+.fully-funded-badge {
+    animation: celebrationPop 1s ease-in-out infinite;
+}
+
+/* Amount left positive animation */
+.card-value.positive {
+    animation: successGlow 1.5s ease-in-out;
+}
+
+/* Amount left negative animation */
+.card-value.negative {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* Income input focus */
+.budget-income-input input:focus {
+    animation: pulse 0.3s ease-in-out;
+}
+
+/* Chart hover effects */
+.chart-container canvas:hover {
+    transform: scale(1.01);
+    transition: transform 0.2s ease;
+}
+
+/* Category section header hover */
+.budget-section-header:hover {
+    background: var(--bg-secondary);
+}
+
+/* Editable amount hover */
+.editable-amount:hover {
+    background: var(--bg-secondary);
+    animation: budgetCategoryPop 0.2s ease-out;
+}
+
+/* Fully funded category highlight */
+.budget-category-item.fully-funded {
+    border: 1px solid var(--color-income);
+}
+
+.budget-category-item.fully-funded .fully-funded-badge {
+    animation: celebrationPop 0.5s ease-in-out;
+}
+
+/* Loading state for budget */
+.budget-loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Toast success celebration */
+.toast.success {
+    animation: successGlow 1s ease-in-out;
+}
