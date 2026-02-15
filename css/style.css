@@ -1538,7 +1538,8 @@ body {
     }
     
     .currency-selector {
-        display: none;
+        padding: 0.25rem 0.25rem;
+        font-size: 0.6875rem;
     }
     
     .theme-toggle {
