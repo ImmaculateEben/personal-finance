@@ -1262,6 +1262,7 @@ body {
         justify-content: space-between;
         align-items: center;
         padding: 0.25rem 0;
+        width: 100%;
     }
     
     .budget-dashboard-title {
@@ -1269,26 +1270,47 @@ body {
     }
     
     .header-summary-items {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 0.375rem;
-        margin-top: 0.5rem;
+        display: flex !important;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 0.5rem;
+        padding: 0.25rem 0;
+        width: 100%;
+    }
+    
+    .header-summary-items::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .header-summary-scroll {
+        display: flex !important;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 0.5rem;
+    }
+    
+    .header-summary-scroll::-webkit-scrollbar {
+        display: none;
     }
     
     .header-summary-item {
-        padding: 0.375rem 0.25rem;
+        flex: 0 0 auto;
+        min-width: 80px;
+        scroll-snap-align: start;
     }
     
-    .header-summary-item.balance {
-        display: flex;
+    .mobile-balance {
+        display: flex !important;
     }
     
-    .header-summary-label {
-        font-size: 0.5625rem;
-    }
-    
-    .header-summary-value {
-        font-size: 0.8125rem;
+    .desktop-only {
+        display: none;
     }
     
     .main-content {
@@ -1508,10 +1530,39 @@ body {
     }
     
     .header-summary-items {
-        grid-template-columns: repeat(4, 1fr);
+        display: flex !important;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.25rem 0;
+    }
+    
+    .header-summary-items::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .header-summary-scroll {
+        display: flex !important;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 0.5rem;
+    }
+    
+    .header-summary-scroll::-webkit-scrollbar {
+        display: none;
     }
     
     .header-summary-item {
+        flex: 0 0 auto;
+        min-width: 70px;
+        scroll-snap-align: start;
         padding: 0.25rem 0.375rem;
     }
     
