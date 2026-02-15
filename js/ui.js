@@ -405,9 +405,10 @@ const UI = {
                                data-category-id="${cat.id}" data-field="planned" 
                                placeholder="0.00" step="0.01">
                     </div>
-                    <button class="row-add-btn" data-type="income" aria-label="Add item">
+                    <button class="row-add-btn" data-type="${cat.type}" aria-label="Duplicate item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                            <path d="M12 5v14M5 12h14"/>
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
                         </svg>
                     </button>
                     <button class="row-delete-btn" data-category-id="${cat.id}" aria-label="Delete item">
@@ -438,9 +439,10 @@ const UI = {
                            data-category-id="${cat.id}" data-field="actual" 
                            placeholder="0.00" step="0.01">
                 </div>
-                <button class="row-add-btn" data-type="${cat.type}" aria-label="Add item">
+                <button class="row-add-btn" data-type="${cat.type}" aria-label="Duplicate item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                        <path d="M12 5v14M5 12h14"/>
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
                     </svg>
                 </button>
                 <button class="row-delete-btn" data-category-id="${cat.id}" aria-label="Delete item">
@@ -610,38 +612,27 @@ const UI = {
             });
         });
         
-        // Handle row add buttons
+        // Handle row add buttons - duplicate the row
         document.querySelectorAll('.row-add-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const type = btn.dataset.type;
-                document.getElementById('budgetItemType').value = type;
-                document.getElementById('budgetItemName').value = '';
-                document.getElementById('budgetItemPlanned').value = '';
-                document.getElementById('budgetItemActual').value = '';
+                const row = btn.closest('.spreadsheet-row');
+                const categoryId = row.dataset.categoryId;
+                const type = row.dataset.type;
                 
-                // Show/hide actual field based on type (income doesn't need actual)
-                const actualFieldGroup = document.getElementById('actualFieldGroup');
-                if (type === 'income') {
-                    actualFieldGroup.style.display = 'none';
-                } else {
-                    actualFieldGroup.style.display = 'block';
+                // Get the existing category data
+                const category = Storage.getBudgetCategories().find(c => c.id === categoryId);
+                if (category) {
+                    // Create a duplicate with new ID
+                    const newCategory = {
+                        ...category,
+                        id: generateId(),
+                        name: category.name + ' (Copy)'
+                    };
+                    Storage.addBudgetCategory(newCategory);
+                    UI.refreshBudgetSection();
+                    UI.showNotification('Item duplicated', 'success');
                 }
-                
-                // Set default color based on type
-                const defaultColors = {
-                    income: '#22c55e',
-                    variable: '#f59e0b',
-                    fixed: '#ef4444',
-                    savings: '#3b82f6',
-                    debt: '#8b5cf6'
-                };
-                document.getElementById('budgetItemColor').value = defaultColors[type] || '#4299e1';
-                
-                UI.showModal('budgetItemModal');
-                setTimeout(() => {
-                    document.getElementById('budgetItemName').focus();
-                }, 100);
             });
         });
     },
