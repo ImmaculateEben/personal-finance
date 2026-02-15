@@ -349,6 +349,7 @@ body {
 .add-item-btn {
     width: 24px;
     height: 24px;
+    min-width: 24px;
     border: none;
     border-radius: var(--radius-sm);
     background: transparent;
@@ -359,6 +360,8 @@ body {
     justify-content: center;
     margin-left: auto;
     transition: all var(--transition);
+    z-index: 10;
+    position: relative;
 }
 
 .add-item-btn:hover {
@@ -1650,8 +1653,14 @@ body {
     }
     
     .add-item-btn {
-        width: 20px;
-        height: 20px;
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+    }
+    
+    .add-item-btn svg {
+        width: 18px;
+        height: 18px;
     }
     
     .spreadsheet-header {
