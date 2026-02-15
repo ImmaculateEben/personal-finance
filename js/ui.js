@@ -395,7 +395,7 @@ const UI = {
             return `
                 <div class="spreadsheet-row income-row" data-category-id="${cat.id}" data-type="${cat.type}">
                     <div class="col-name">
-                        <span class="category-color-dot" style="background-color: ${cat.color}"></span>
+                        <input type="color" class="category-color-input" value="${cat.color}" data-category-id="${cat.id}" data-field="color" title="Click to change color">
                         <input type="text" class="category-name" value="${cat.name}" 
                                data-category-id="${cat.id}" data-field="name"
                                placeholder="Item name">
@@ -424,7 +424,7 @@ const UI = {
         return `
             <div class="spreadsheet-row" data-category-id="${cat.id}" data-type="${cat.type}">
                 <div class="col-name">
-                    <span class="category-color-dot" style="background-color: ${cat.color}"></span>
+                    <input type="color" class="category-color-input" value="${cat.color}" data-category-id="${cat.id}" data-field="color" title="Click to change color">
                     <input type="text" class="category-name" value="${cat.name}" 
                            data-category-id="${cat.id}" data-field="name"
                            placeholder="Item name">
@@ -587,6 +587,20 @@ const UI = {
                     this.refreshBudgetSection();
                 }
             }, true);
+            
+            // Handle color input changes
+            body.addEventListener('change', (e) => {
+                if (e.target.classList.contains('category-color-input')) {
+                    const categoryId = e.target.dataset.categoryId;
+                    const color = e.target.value;
+                    
+                    // Save to storage
+                    Storage.updateBudgetCategory(categoryId, 'color', color);
+                    
+                    // Refresh all spreadsheets and summaries
+                    this.refreshBudgetSection();
+                }
+            });
             
             // Handle Enter key
             body.addEventListener('keydown', (e) => {

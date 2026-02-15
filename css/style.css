@@ -431,6 +431,26 @@ body {
     flex-shrink: 0;
 }
 
+.category-color-input {
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+    flex-shrink: 0;
+}
+
+.category-color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.category-color-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+}
+
 .category-name {
     font-size: 0.875rem;
     color: var(--text-primary);
