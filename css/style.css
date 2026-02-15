@@ -1285,7 +1285,7 @@ body {
     .mobile-balance {
         display: flex !important;
         margin-left: auto;
-        padding: 0.375rem 0.5rem;
+        padding: 0.375rem 0.375rem;
         min-width: auto;
         width: auto;
         white-space: nowrap;
@@ -1577,7 +1577,7 @@ body {
     .mobile-balance {
         display: flex !important;
         margin-left: auto;
-        padding: 0.25rem 0.375rem;
+        padding: 0.25rem 0.25rem;
         min-width: auto;
         width: auto;
     }
