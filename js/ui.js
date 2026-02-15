@@ -104,6 +104,12 @@ const UI = {
             balanceEl.textContent = formatCurrency(totalBalance);
             balanceEl.style.color = totalBalance >= 0 ? '#fbbf24' : '#ef4444';
         }
+        
+        const balanceDesktopEl = document.getElementById('headerBalanceDesktop');
+        if (balanceDesktopEl) {
+            balanceDesktopEl.textContent = formatCurrency(totalBalance);
+            balanceDesktopEl.style.color = totalBalance >= 0 ? '#fbbf24' : '#ef4444';
+        }
     },
     
     /**

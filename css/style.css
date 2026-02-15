@@ -1135,6 +1135,14 @@ body {
     animation: fadeIn 0.3s ease forwards;
 }
 
+.header-summary-item.balance.mobile-balance {
+    display: none;
+}
+
+.desktop-only {
+    display: block;
+}
+
 /* Responsive - Tablet */
 @media (max-width: 1024px) {
     .header {
@@ -1250,26 +1258,29 @@ body {
     }
     
     .month-center-wrapper {
-        justify-content: center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         padding: 0.25rem 0;
     }
     
     .budget-dashboard-title {
         font-size: 0.9375rem;
-        text-align: center;
     }
     
     .header-summary-items {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         gap: 0.375rem;
         margin-top: 0.5rem;
     }
     
     .header-summary-item {
-        flex: none;
-        min-width: 0;
         padding: 0.375rem 0.25rem;
+    }
+    
+    .header-summary-item.balance {
+        display: flex;
     }
     
     .header-summary-label {
@@ -1482,8 +1493,22 @@ body {
         font-size: 0.875rem;
     }
     
+    .month-center-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .mobile-balance {
+        display: flex !important;
+    }
+    
+    .desktop-only {
+        display: none;
+    }
+    
     .header-summary-items {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(4, 1fr);
     }
     
     .header-summary-item {
