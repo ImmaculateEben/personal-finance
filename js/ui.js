@@ -405,6 +405,11 @@ const UI = {
                                data-category-id="${cat.id}" data-field="planned" 
                                placeholder="0.00" step="0.01">
                     </div>
+                    <button class="row-add-btn" data-type="income" aria-label="Add item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </button>
                     <button class="row-delete-btn" data-category-id="${cat.id}" aria-label="Delete item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                             <path d="M18 6L6 18M6 6l12 12"/>
@@ -433,6 +438,11 @@ const UI = {
                            data-category-id="${cat.id}" data-field="actual" 
                            placeholder="0.00" step="0.01">
                 </div>
+                <button class="row-add-btn" data-type="${cat.type}" aria-label="Add item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                </button>
                 <button class="row-delete-btn" data-category-id="${cat.id}" aria-label="Delete item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                         <path d="M18 6L6 18M6 6l12 12"/>
@@ -597,6 +607,41 @@ const UI = {
                     this.refreshBudgetSection();
                     UI.showNotification('Item deleted', 'success');
                 }
+            });
+        });
+        
+        // Handle row add buttons
+        document.querySelectorAll('.row-add-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const type = btn.dataset.type;
+                document.getElementById('budgetItemType').value = type;
+                document.getElementById('budgetItemName').value = '';
+                document.getElementById('budgetItemPlanned').value = '';
+                document.getElementById('budgetItemActual').value = '';
+                
+                // Show/hide actual field based on type (income doesn't need actual)
+                const actualFieldGroup = document.getElementById('actualFieldGroup');
+                if (type === 'income') {
+                    actualFieldGroup.style.display = 'none';
+                } else {
+                    actualFieldGroup.style.display = 'block';
+                }
+                
+                // Set default color based on type
+                const defaultColors = {
+                    income: '#22c55e',
+                    variable: '#f59e0b',
+                    fixed: '#ef4444',
+                    savings: '#3b82f6',
+                    debt: '#8b5cf6'
+                };
+                document.getElementById('budgetItemColor').value = defaultColors[type] || '#4299e1';
+                
+                UI.showModal('budgetItemModal');
+                setTimeout(() => {
+                    document.getElementById('budgetItemName').focus();
+                }, 100);
             });
         });
     },

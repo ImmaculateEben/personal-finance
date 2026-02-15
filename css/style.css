@@ -388,7 +388,7 @@ body {
 }
 
 .income .spreadsheet-header {
-    grid-template-columns: 1fr 80px;
+    grid-template-columns: 1fr 80px 28px 28px;
 }
 
 .spreadsheet-body {
@@ -398,7 +398,7 @@ body {
 
 .spreadsheet-row {
     display: grid;
-    grid-template-columns: 1fr 80px 80px 28px;
+    grid-template-columns: 1fr 80px 80px 28px 28px;
     padding: 0.5rem 1rem;
     align-items: center;
     border-bottom: 1px solid var(--border-color);
@@ -406,7 +406,7 @@ body {
 }
 
 .spreadsheet-row.income-row {
-    grid-template-columns: 1fr 80px 28px;
+    grid-template-columns: 1fr 80px 28px 28px;
 }
 
 .spreadsheet-row:last-child {
@@ -570,6 +570,30 @@ body {
 .row-delete-btn:hover {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
+}
+
+.row-add-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all var(--transition);
+}
+
+.spreadsheet-row:hover .row-add-btn {
+    opacity: 1;
+}
+
+.row-add-btn:hover {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
 }
 
 /* Budget Summary Section */
