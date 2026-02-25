@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Personal finance budget dashboard with monthly planning, tracking, and local backup tools.">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';">
+    <meta name="referrer" content="no-referrer">
     <title>Personal Finance Dashboard</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/variables.css">
@@ -50,6 +53,9 @@
                     <option value="9">October</option>
                     <option value="10">November</option>
                     <option value="11">December</option>
+                </select>
+                <select id="yearSelector" class="month-selector year-selector" aria-label="Select year">
+                    <!-- Options populated by JavaScript -->
                 </select>
                 <div class="header-summary-item balance mobile-balance">
                     <span class="header-summary-label">Balance</span>
@@ -128,6 +134,11 @@
                                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                                 </svg>
                                 Income
+                                <button type="button" class="add-item-btn" data-type="income" aria-label="Add income item">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                </button>
                             </h2>
                             <div class="spreadsheet-table">
                                 <div class="spreadsheet-header">
@@ -149,6 +160,11 @@
                                     <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                                 </svg>
                                 Expenses
+                                <button type="button" class="add-item-btn" data-type="variable" aria-label="Add expense item">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                </button>
                             </h2>
                             <div class="spreadsheet-table">
                                 <div class="spreadsheet-header">
@@ -171,6 +187,11 @@
                                     <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/>
                                 </svg>
                                 Bills
+                                <button type="button" class="add-item-btn" data-type="fixed" aria-label="Add bill item">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                </button>
                             </h2>
                             <div class="spreadsheet-table">
                                 <div class="spreadsheet-header">
@@ -193,6 +214,11 @@
                                     <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/>
                                 </svg>
                                 Savings
+                                <button type="button" class="add-item-btn" data-type="savings" aria-label="Add savings item">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                </button>
                             </h2>
                             <div class="spreadsheet-table">
                                 <div class="spreadsheet-header">
@@ -216,6 +242,11 @@
                                     <line x1="1" y1="10" x2="23" y2="10"/>
                                 </svg>
                                 Debt
+                                <button type="button" class="add-item-btn" data-type="debt" aria-label="Add debt item">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                </button>
                             </h2>
                             <div class="spreadsheet-table">
                                 <div class="spreadsheet-header">
@@ -237,6 +268,47 @@
 
                 <!-- Right Column: Charts & Transactions -->
                 <div class="right-column">
+                    <section class="tools-section">
+                        <div class="card tools-card">
+                            <h2 class="section-title">Workspace</h2>
+                            <div class="workspace-meta">
+                                <span class="meta-pill" id="currentPeriodBadge">----</span>
+                                <span class="meta-pill" id="itemCountBadge">0 items</span>
+                            </div>
+                            <p class="workspace-status" id="lastUpdatedText">Last saved: not yet</p>
+                            <div class="tools-grid">
+                                <button type="button" class="btn btn-secondary tool-btn" id="copyPrevMonthBtn">Copy Prev Month</button>
+                                <button type="button" class="btn btn-secondary tool-btn" id="exportDataBtn">Export Backup</button>
+                                <button type="button" class="btn btn-secondary tool-btn" id="importDataBtn">Import Backup</button>
+                                <button type="button" class="btn btn-secondary tool-btn danger" id="resetCurrentMonthBtn">Reset Month</button>
+                                <button type="button" class="btn btn-secondary tool-btn danger" id="clearAllDataBtn">Clear All Data</button>
+                            </div>
+                            <input type="file" id="importDataInput" accept="application/json,.json" hidden>
+                            <p class="workspace-note">Data stays in this browser. Imports are validated before saving.</p>
+                        </div>
+
+                        <div class="card notes-card">
+                            <h2 class="section-title">Month Notes</h2>
+                            <label for="monthNotes" class="visually-hidden">Month notes</label>
+                            <textarea id="monthNotes" class="notes-textarea" maxlength="1000" placeholder="Track reminders, bill due dates, goals, or what changed this month..."></textarea>
+                            <div class="notes-footer">
+                                <span class="notes-helper">Auto-saves locally</span>
+                                <span class="notes-counter" id="notesCharCount">0/1000</span>
+                            </div>
+                        </div>
+
+                        <div class="card insights-card">
+                            <h2 class="section-title">Insights</h2>
+                            <div class="insights-list">
+                                <div class="insight-row"><span>Budget health</span><strong id="insightBudgetHealth">-</strong></div>
+                                <div class="insight-row"><span>Planned utilization</span><strong id="insightPlannedUtilization">-</strong></div>
+                                <div class="insight-row"><span>Actual utilization</span><strong id="insightActualUtilization">-</strong></div>
+                                <div class="insight-row"><span>Largest planned</span><strong id="insightLargestPlanned">-</strong></div>
+                                <div class="insight-row"><span>Largest actual</span><strong id="insightLargestActual">-</strong></div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Budget Charts Section -->
                     <section class="charts-section">
                         <div class="card chart-card">
@@ -311,7 +383,7 @@
     </div>
 
     <!-- Notification Toast -->
-    <div class="toast" id="toast">
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
         <span class="toast-message"></span>
     </div>
 

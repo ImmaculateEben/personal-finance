@@ -1,35 +1,44 @@
-# Personal Finance Tracker
+# Personal Finance Dashboard
 
-A beautiful, feature-rich personal finance tracking web application built with vanilla JavaScript, HTML, and CSS.
+A responsive personal finance budgeting dashboard built with vanilla JavaScript, HTML, and CSS.
 
-## Features
+## What It Does
 
-- **Transaction Management**: Add, edit, and delete income/expense transactions
-- **Category Management**: Organize transactions by category with icons
-- **Visual Analytics**: Interactive charts showing spending patterns
-- **Budget Tracking**: Set and monitor monthly budgets
-- **Data Persistence**: All data stored locally in the browser
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- Plan monthly budgets by category (`Income`, `Expenses`, `Bills`, `Savings`, `Debt`)
+- Track planned vs actual values for each month
+- Switch between months and years (data is stored per period)
+- View charts for budget health, allocation, and planned-vs-actual totals
+- Add, duplicate, edit, and delete budget line items inline
+- Write month notes (auto-saved locally)
+- Export/import local backups as JSON
+- Copy the previous month's budget into the current month
+- Reset a month or clear all local data
+
+## Security / Reliability Improvements
+
+- Input sanitization for names, notes, and imported JSON data
+- Safer localStorage parsing/normalization with schema validation
+- Per-month/per-year budget storage (fixes month selector not affecting data)
+- Reduced XSS risk in budget row rendering
+- Content Security Policy and stricter browser security meta tags in `index.html`
+- Event delegation for spreadsheet editing (prevents duplicate listeners on re-render)
 
 ## Tech Stack
 
 - HTML5
-- CSS3 (with custom properties and animations)
+- CSS3
 - Vanilla JavaScript (ES6+)
-- Chart.js for data visualization
-- LocalStorage for data persistence
+- Chart.js
+- LocalStorage (browser-only persistence)
 
 ## Getting Started
 
 1. Clone the repository
-2. Open `index.html` in your web browser
+2. Open `index.html` in a browser
 
-No build step or server required - it's a static website!
+No build step or backend required.
 
-## Deployment
+## Notes
 
-This project is deployed on Vercel. Simply push to the main branch and Vercel will automatically deploy.
-
-## License
-
-MIT
+- All data is stored in your browser.
+- Use the **Export Backup** button before clearing data or moving to another device/browser.

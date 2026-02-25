@@ -1,534 +1,398 @@
-// Main Application Module
+// Main Application Module (Budget Dashboard)
 
 const App = {
-    /**
-     * Initialize the application
-     */
+    _notesSaveHandler: null,
+    _activePeriodKey: null,
+
     init() {
-        // Check localStorage availability
         if (!Storage.isAvailable()) {
-            UI.showNotification('localStorage is not available. Data will not be saved.', 'error');
+            UI.showNotification('Local storage is unavailable. Changes will not persist.', 'error');
         }
-        
-        // Initialize month selector
-        this.initMonthSelector();
-        
-        // Initialize currency selector
+
         this.initCurrencySelector();
-        
-        // Initialize budget section
-        this.initBudgetSection();
-        
-        // Initialize UI components
-        this.initForm();
-        this.initFilters();
+        this.initPeriodSelectors();
         this.initBudgetItemModal();
-        this.initEventListeners();
-        
-        // Initialize charts
-        ChartManager.init();
-        
-        // Initial render
-        this.refreshAll();
-        
-        console.log('Personal Finance Dashboard initialized');
+        this.initDataTools();
+        this.initNotes();
+        this.initGlobalEvents();
+
+        this.refreshAll({ forceNotesSync: true });
+        console.log('Budget dashboard initialized');
     },
-    
-    /**
-     * Initialize currency selector
-     */
+
     initCurrencySelector() {
         const selector = document.getElementById('currencySelector');
+        if (!selector) return;
+
+        selector.innerHTML = '';
         const currencies = Storage.getCurrencies();
         const savedCurrency = Storage.getCurrency();
-        
-        // Populate currency options
+
         currencies.forEach(currency => {
             const option = document.createElement('option');
             option.value = currency.code;
             option.textContent = currency.code + ' - ' + currency.name;
-            if (currency.code === savedCurrency) {
-                option.selected = true;
-            }
+            option.selected = currency.code === savedCurrency;
             selector.appendChild(option);
         });
-        
-        // Handle currency change
-        selector.addEventListener('change', (e) => {
-            this.handleCurrencyChange(e.target.value);
-        });
-    },
-    
-    /**
-     * Initialize month selector
-     */
-    initMonthSelector() {
-        const selector = document.getElementById('monthSelector');
-        const savedMonth = Storage.getSelectedMonth();
-        const currentMonth = new Date().getMonth();
-        const monthToUse = savedMonth !== null ? savedMonth : currentMonth;
-        
-        // Update UI
-        UI.updateMonthSelector(monthToUse);
-        
-        // Handle month change
-        selector.addEventListener('change', (e) => {
-            const monthIndex = parseInt(e.target.value);
-            Storage.setSelectedMonth(monthIndex);
-            UI.updateMonthSelector(monthIndex);
-            // Refresh all data for the selected month
+
+        selector.addEventListener('change', (event) => {
+            Storage.setCurrency(event.target.value);
             this.refreshAll();
+            const info = Storage.getCurrencyInfo(event.target.value);
+            UI.showNotification('Currency changed to ' + info.name, 'success');
         });
     },
-    
-    /**
-     * Handle currency change
-     * @param {string} currencyCode - New currency code
-     */
-    handleCurrencyChange(currencyCode) {
-        Storage.setCurrency(currencyCode);
-        
-        // Refresh all UI components to reflect new currency
-        this.refreshAll();
-        
-        const currencyInfo = Storage.getCurrencyInfo(currencyCode);
-        UI.showNotification('Currency changed to ' + currencyInfo.name, 'success');
-    },
-    
-    /**
-     * Get current currency symbol
-     * @returns {string} Currency symbol
-     */
-    getCurrencySymbol() {
-        const currencyCode = Storage.getCurrency();
-        const currencyInfo = Storage.getCurrencyInfo(currencyCode);
-        return currencyInfo.symbol;
-    },
-    
-    /**
-     * Initialize budget section
-     */
-    initBudgetSection() {
-        const incomeInput = document.getElementById('monthlyIncome');
-        
-        if (incomeInput) {
-            // Initialize with saved value
-            incomeInput.value = Storage.getMonthlyIncome();
-            
-            // Handle income change with debounce
-            incomeInput.addEventListener('input', debounce((e) => {
-                this.handleIncomeChange(e.target.value);
-            }, 300));
-            
-            // Handle blur to ensure valid value
-            incomeInput.addEventListener('blur', (e) => {
-                const value = parseFloat(e.target.value) || 0;
-                e.target.value = value;
-                this.handleIncomeChange(value);
+
+    initPeriodSelectors() {
+        const monthSelector = document.getElementById('monthSelector');
+        const yearSelector = document.getElementById('yearSelector');
+
+        if (monthSelector) {
+            monthSelector.addEventListener('change', (event) => {
+                Storage.setSelectedMonth(parseInt(event.target.value, 10));
+                this.refreshAll({ forceNotesSync: true });
             });
         }
-        
-        // Render budget section
-        UI.renderBudgetSection();
-    },
-    
-    /**
-     * Handle monthly income change
-     * @param {number} income - New income amount
-     */
-    handleIncomeChange(income) {
-        Storage.setMonthlyIncome(income);
-        
-        // Update display
-        const display = document.getElementById('monthlyIncomeDisplay');
-        if (display) {
-            display.textContent = formatCurrency(income);
+
+        if (yearSelector) {
+            yearSelector.addEventListener('change', (event) => {
+                Storage.setSelectedYear(parseInt(event.target.value, 10));
+                this.refreshAll({ forceNotesSync: true });
+            });
         }
-        
-        // Refresh budget summary
-        UI.renderBudgetSummary();
-        ChartManager.updateBudgetCharts();
+
+        this.renderYearSelectorOptions();
     },
-    
-    /**
-     * Initialize transaction form
-     */
-    initForm() {
-        const form = document.getElementById('transactionForm');
-        const dateInput = form.querySelector('#date');
-        
-        // Set default date to today
-        dateInput.value = getTodayDate();
-        
-        // Form submission handler
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleTransactionSubmit(e.target);
+
+    renderYearSelectorOptions() {
+        const yearSelector = document.getElementById('yearSelector');
+        if (!yearSelector) return;
+
+        const selectedYear = Storage.getSelectedYear();
+        const years = Storage.getAvailableBudgetYears();
+        if (!years.includes(selectedYear)) {
+            years.push(selectedYear);
+            years.sort((a, b) => a - b);
+        }
+
+        yearSelector.innerHTML = '';
+        years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = String(year);
+            option.textContent = String(year);
+            option.selected = year === selectedYear;
+            yearSelector.appendChild(option);
         });
     },
-    
-    /**
-     * Handle transaction form submission
-     * @param {HTMLFormElement} form - Form element
-     */
-    handleTransactionSubmit(form) {
-        const formData = {
-            amount: form.amount.value,
-            type: form.type.value,
-            category: form.category.value,
-            description: form.description.value,
-            date: form.date.value
-        };
-        
-        // Validate form data
-        if (!isValidAmount(formData.amount)) {
-            UI.showNotification('Please enter a valid amount', 'error');
-            return;
-        }
-        
-        // Add transaction
-        const result = TransactionManager.add(formData);
-        
-        if (result.success) {
-            UI.showNotification('Transaction added successfully', 'success');
-            form.reset();
-            dateInput.value = getTodayDate();
-            this.refreshAll();
-            UI.focusInput('amount');
-            
-            // Refresh budget section
-            UI.refreshBudgetSection();
-        } else {
-            UI.showNotification('Failed to add transaction', 'error');
-        }
-    },
-    
-    /**
-     * Initialize filters
-     */
-    initFilters() {
-        const filterType = document.getElementById('filterType');
-        const filterDate = document.getElementById('filterDate');
-        const clearFiltersBtn = document.getElementById('clearFilters');
-        
-        // Filter change handlers
-        const handleFilterChange = debounce(() => {
-            this.applyFilters();
-        }, 300);
-        
-        filterType.addEventListener('change', handleFilterChange);
-        filterDate.addEventListener('change', handleFilterChange);
-        
-        // Clear filters
-        clearFiltersBtn.addEventListener('click', () => {
-            filterType.value = 'all';
-            filterDate.value = '';
-            this.applyFilters();
-            UI.showNotification('Filters cleared', 'success');
-        });
-    },
-    
-    /**
-     * Apply current filters and refresh the view
-     */
-    applyFilters() {
-        const filterType = document.getElementById('filterType').value;
-        const filterDate = document.getElementById('filterDate').value;
-        
-        const filters = {};
-        
-        if (filterType !== 'all') {
-            filters.type = filterType;
-        }
-        
-        if (filterDate) {
-            filters.date = filterDate;
-        }
-        
-        const filteredTransactions = TransactionManager.filter(filters);
-        UI.renderTransactions(filteredTransactions);
-        
-        // Update summary with filtered data
-        const summary = TransactionManager.calculateSummary(filteredTransactions);
-        UI.renderSummary(summary);
-    },
-    
-    /**
-     * Initialize category modal
-     */
-    initCategoryModal() {
-        const modal = document.getElementById('categoryModal');
-        const addBtn = document.getElementById('addCategoryBtn');
-        const cancelBtn = document.getElementById('cancelCategory');
-        const closeBtn = document.getElementById('closeCategoryModal');
-        const form = document.getElementById('categoryForm');
-        const overlay = modal.querySelector('.modal-overlay');
-        
-        // Open modal
-        addBtn.addEventListener('click', () => {
-            UI.showModal('categoryModal');
-            document.getElementById('newCategoryName').focus();
-        });
-        
-        // Close modal handlers
-        const closeModal = () => UI.hideModal('categoryModal');
-        cancelBtn.addEventListener('click', closeModal);
-        closeBtn.addEventListener('click', closeModal);
-        overlay.addEventListener('click', closeModal);
-        
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('show')) {
-                closeModal();
-            }
-        });
-        
-        // Form submission
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleCategorySubmit(e.target);
-        });
-    },
-    
-    /**
-     * Initialize budget item modal
-     */
+
     initBudgetItemModal() {
-        console.log('Initializing budget item modal...');
         const modal = document.getElementById('budgetItemModal');
+        if (!modal) return;
+
         const cancelBtn = document.getElementById('cancelBudgetItem');
         const closeBtn = document.getElementById('closeBudgetItemModal');
         const form = document.getElementById('budgetItemForm');
         const overlay = modal.querySelector('.modal-overlay');
-        
-        console.log('Modal elements:', { modal, cancelBtn, closeBtn, form, overlay });
-        
-        // Close modal handlers
-        const closeModal = () => UI.hideModal('budgetItemModal');
-        cancelBtn.addEventListener('click', closeModal);
-        closeBtn.addEventListener('click', closeModal);
-        overlay.addEventListener('click', closeModal);
-        
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('show')) {
-                closeModal();
-            }
-        });
-        
-        // Form submission
-        form.addEventListener('submit', (e) => {
-            console.log('Form submitted!');
-            e.preventDefault();
-            this.handleBudgetItemSubmit(e.target);
-        });
-    },
-    
-    /**
-     * Handle budget item form submission
-     * @param {HTMLFormElement} form - Form element
-     */
-    handleBudgetItemSubmit(form) {
-        const type = form.budgetItemType.value;
-        const name = toTitleCase(form.budgetItemName.value.trim());
-        const planned = parseFloat(form.budgetItemPlanned.value) || 0;
-        const actual = parseFloat(form.budgetItemActual.value) || 0;
-        const color = form.budgetItemColor.value;
-        
-        const budgetItem = {
-            id: generateId(),
-            name: name,
-            type: type,
-            color: color,
-            planned: planned,
-            actual: actual
-        };
-        
-        console.log('Adding budget item:', budgetItem);
-        const success = Storage.addBudgetCategory(budgetItem);
-        console.log('Save result:', success);
-        
-        if (success) {
-            UI.showNotification('Item added successfully', 'success');
-            form.reset();
+
+        const closeModal = () => {
             UI.hideModal('budgetItemModal');
-            UI.refreshBudgetSection();
-        } else {
-            UI.showNotification('Failed to add item', 'error');
-        }
-    },
-    
-    /**
-     * Handle category form submission
-     * @param {HTMLFormElement} form - Form element
-     */
-    handleCategorySubmit(form) {
-        const category = {
-            id: generateId(),
-            name: toTitleCase(form.newCategoryName.value.trim()),
-            type: form.newCategoryType.value,
-            color: form.newCategoryColor.value
         };
-        
-        const success = Storage.addCategory(category);
-        
-        if (success) {
-            UI.showNotification('Category added successfully', 'success');
-            form.reset();
-            form.newCategoryColor.value = '#4299e1';
-            UI.hideModal('categoryModal');
-            UI.renderCategoriesList();
-            UI.renderCategoryDatalist();
-        } else {
-            UI.showNotification('Failed to add category', 'error');
+
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (overlay) overlay.addEventListener('click', closeModal);
+
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                this.handleBudgetItemSubmit(form);
+            });
         }
     },
-    
-    /**
-     * Initialize event listeners
-     */
-    initEventListeners() {
-        // Transaction delete buttons (event delegation)
-        document.getElementById('transactionsList').addEventListener('click', (e) => {
-            const deleteBtn = e.target.closest('.delete-btn');
-            if (deleteBtn) {
-                const id = deleteBtn.dataset.id;
-                this.handleDeleteTransaction(id);
-            }
-        });
-        
-        // Category delete buttons (event delegation)
-        document.getElementById('categoryListDisplay').addEventListener('click', (e) => {
-            const deleteBtn = e.target.closest('.category-delete');
-            if (deleteBtn) {
-                const id = deleteBtn.dataset.id;
-                this.handleDeleteCategory(id);
-            }
-        });
-        
-        // Window resize handler for charts
-        window.addEventListener('resize', debounce(() => {
-            UI.updateCharts();
-        }, 250));
-        
-        // Add animation styles
-        UI.addAnimationStyles();
-    },
-    
-    /**
-     * Handle transaction deletion
-     * @param {string} id - Transaction ID
-     */
-    handleDeleteTransaction(id) {
-        const transaction = TransactionManager.getById(id);
-        if (!transaction) return;
-        
-        // Confirm deletion
-        const confirmDelete = confirm(`Delete "${transaction.description}" for ${formatCurrency(transaction.amount)}?`);
-        
-        if (confirmDelete) {
-            const result = TransactionManager.delete(id);
-            
-            if (result.success) {
-                UI.removeTransactionElement(id);
-                this.refreshAll();
-                UI.showNotification('Transaction deleted', 'success');
-                
-                // Refresh budget section
-                UI.refreshBudgetSection();
-            } else {
-                UI.showNotification('Failed to delete transaction', 'error');
-            }
+
+    openBudgetItemModal(type) {
+        const safeType = ['income', 'variable', 'fixed', 'savings', 'debt'].includes(type) ? type : 'variable';
+        const form = document.getElementById('budgetItemForm');
+        if (!form) return;
+
+        form.reset();
+        form.budgetItemType.value = safeType;
+        form.budgetItemName.value = '';
+        form.budgetItemPlanned.value = '';
+        form.budgetItemActual.value = '';
+
+        const actualFieldGroup = document.getElementById('actualFieldGroup');
+        if (actualFieldGroup) {
+            actualFieldGroup.style.display = safeType === 'income' ? 'none' : 'block';
         }
+
+        const typeColors = {
+            income: '#22c55e',
+            variable: '#ec4899',
+            fixed: '#ef4444',
+            savings: '#3b82f6',
+            debt: '#8b5cf6'
+        };
+        form.budgetItemColor.value = typeColors[safeType] || '#4299e1';
+
+        UI.showModal('budgetItemModal');
+        setTimeout(() => {
+            form.budgetItemName.focus();
+        }, 0);
     },
-    
-    /**
-     * Handle category deletion
-     * @param {string} id - Category ID
-     */
-    handleDeleteCategory(id) {
-        const category = Storage.getCategories().find(c => c.id === id);
-        if (!category) return;
-        
-        // Check if category is in use
-        const transactions = TransactionManager.getAll();
-        const isInUse = transactions.some(t => 
-            t.category.toLowerCase() === category.name.toLowerCase()
-        );
-        
-        if (isInUse) {
-            UI.showNotification('Cannot delete category in use by transactions', 'error');
+
+    handleBudgetItemSubmit(form) {
+        const type = ['income', 'variable', 'fixed', 'savings', 'debt'].includes(form.budgetItemType.value)
+            ? form.budgetItemType.value
+            : 'variable';
+
+        const name = sanitizeText(form.budgetItemName.value, { maxLength: 40, fallback: '' });
+        const planned = toNumber(form.budgetItemPlanned.value, { fallback: 0, min: 0, max: 1000000000 });
+        const actual = type === 'income'
+            ? 0
+            : toNumber(form.budgetItemActual.value, { fallback: 0, min: 0, max: 1000000000 });
+        const color = normalizeHexColor(form.budgetItemColor.value, '#4299e1');
+
+        if (!name) {
+            UI.showNotification('Please enter a valid item name', 'error');
+            form.budgetItemName.focus();
             return;
         }
-        
-        // Confirm deletion
-        const confirmDelete = confirm(`Delete category "${category.name}"?`);
-        
-        if (confirmDelete) {
-            const success = Storage.deleteCategory(id);
-            
-            if (success) {
-                UI.renderCategoriesList();
-                UI.renderCategoryDatalist();
-                UI.showNotification('Category deleted', 'success');
-            } else {
-                UI.showNotification('Failed to delete category', 'error');
-            }
+
+        if (planned < 0 || actual < 0) {
+            UI.showNotification('Amounts cannot be negative', 'error');
+            return;
+        }
+
+        const success = Storage.addBudgetCategory({
+            id: generateId(),
+            name,
+            type,
+            color,
+            planned,
+            actual
+        });
+
+        if (!success) {
+            UI.showNotification('Could not add item (limit reached or storage error)', 'error');
+            return;
+        }
+
+        UI.hideModal('budgetItemModal');
+        this.refreshAll();
+        UI.showNotification('Budget item added', 'success');
+    },
+
+    initDataTools() {
+        const exportBtn = document.getElementById('exportDataBtn');
+        const importBtn = document.getElementById('importDataBtn');
+        const importInput = document.getElementById('importDataInput');
+        const copyPrevBtn = document.getElementById('copyPrevMonthBtn');
+        const resetBtn = document.getElementById('resetCurrentMonthBtn');
+        const clearAllBtn = document.getElementById('clearAllDataBtn');
+
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.handleExportData();
+            });
+        }
+
+        if (importBtn && importInput) {
+            importBtn.addEventListener('click', () => {
+                importInput.click();
+            });
+        }
+
+        if (importInput) {
+            importInput.addEventListener('change', async (event) => {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+
+                await this.handleImportData(file);
+                importInput.value = '';
+            });
+        }
+
+        if (copyPrevBtn) {
+            copyPrevBtn.addEventListener('click', () => {
+                this.handleCopyPreviousMonth();
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.handleResetCurrentMonth();
+            });
+        }
+
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => {
+                this.handleClearAllData();
+            });
         }
     },
-    
-    /**
-     * Refresh all UI components
-     */
-    refreshAll() {
-        // Get selected month
-        const selectedMonth = Storage.getSelectedMonth();
-        const year = new Date().getFullYear();
-        
-        // Get all transactions filtered by selected month
-        const transactions = TransactionManager.getByMonth(selectedMonth, year);
-        
-        // Render transactions
-        UI.renderTransactions(transactions);
-        
-        // Render summary
-        const summary = TransactionManager.calculateSummary(transactions);
-        UI.renderSummary(summary);
-        
-        // Render charts
-        UI.updateCharts();
-        
-        // Render categories
-        UI.renderCategoriesList();
-        UI.renderCategoryDatalist();
-        
-        // Render budget section
-        UI.renderBudgetSection();
+
+    initNotes() {
+        const notesInput = document.getElementById('monthNotes');
+        if (!notesInput) return;
+
+        this._notesSaveHandler = debounce(() => {
+            Storage.setBudgetNotes(notesInput.value);
+            UI.renderPeriodMeta();
+            UI.updateNotesCounter();
+        }, 300);
+
+        notesInput.addEventListener('input', () => {
+            UI.updateNotesCounter();
+            this._notesSaveHandler();
+        });
     },
-    
-    /**
-     * Refresh with filtering applied
-     */
-    refreshWithFilters() {
-        const filterType = document.getElementById('filterType').value;
-        const filterDate = document.getElementById('filterDate').value;
-        
-        const filters = {};
-        if (filterType !== 'all') filters.type = filterType;
-        if (filterDate) filters.date = filterDate;
-        
-        const filteredTransactions = TransactionManager.filter(filters);
-        UI.renderTransactions(filteredTransactions);
-        
-        const summary = TransactionManager.calculateSummary(filteredTransactions);
-        UI.renderSummary(summary);
+
+    initGlobalEvents() {
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('budgetItemModal');
+                if (modal && modal.classList.contains('show')) {
+                    UI.hideModal('budgetItemModal');
+                }
+            }
+        });
+
+        window.addEventListener('resize', debounce(() => {
+            ChartManager.updateBudgetCharts();
+        }, 150));
+    },
+
+    refreshAll(options = {}) {
+        const { forceNotesSync = false } = options;
+        const month = Storage.getSelectedMonth();
+        const year = Storage.getSelectedYear();
+        const periodKey = Storage.getPeriodKey(month, year);
+
+        Storage.ensureBudgetPeriod(month, year);
+        this.renderYearSelectorOptions();
+        UI.updateMonthSelector(month, year);
+        UI.renderBudgetSection();
+
+        if (forceNotesSync || this._activePeriodKey !== periodKey) {
+            UI.syncMonthNotes(true);
+        } else {
+            UI.syncMonthNotes(false);
+        }
+
+        this._activePeriodKey = periodKey;
+    },
+
+    getPreviousPeriod(month, year) {
+        const previous = new Date(year, month - 1, 1);
+        return {
+            month: previous.getMonth(),
+            year: previous.getFullYear()
+        };
+    },
+
+    handleCopyPreviousMonth() {
+        const month = Storage.getSelectedMonth();
+        const year = Storage.getSelectedYear();
+        const previous = this.getPreviousPeriod(month, year);
+
+        const sourceKey = Storage.getPeriodKey(previous.month, previous.year);
+        const targetKey = Storage.getPeriodKey(month, year);
+
+        if (!Storage.listBudgetPeriods().includes(sourceKey)) {
+            UI.showNotification('No saved budget found for ' + sourceKey, 'error');
+            return;
+        }
+
+        if (!confirm('Copy budget categories from ' + sourceKey + ' into ' + targetKey + '? This will overwrite the current month data.')) {
+            return;
+        }
+
+        const success = Storage.copyBudgetPeriod(previous.month, previous.year, month, year, { includeNotes: false });
+        if (success) {
+            this.refreshAll({ forceNotesSync: true });
+            UI.showNotification('Copied budget from ' + sourceKey, 'success');
+        } else {
+            UI.showNotification('Unable to copy previous month', 'error');
+        }
+    },
+
+    handleResetCurrentMonth() {
+        const periodKey = Storage.getPeriodKey();
+        if (!confirm('Reset all budget items and notes for ' + periodKey + '?')) {
+            return;
+        }
+
+        const success = Storage.resetBudgetPeriod();
+        if (success) {
+            this.refreshAll({ forceNotesSync: true });
+            UI.showNotification('Current month reset', 'success');
+        } else {
+            UI.showNotification('Unable to reset current month', 'error');
+        }
+    },
+
+    handleClearAllData() {
+        if (!confirm('Clear ALL saved finance data (all months, preferences, and backups in this browser)?')) {
+            return;
+        }
+        if (!confirm('This cannot be undone. Continue?')) {
+            return;
+        }
+
+        Storage.clearAll();
+        this.refreshAll({ forceNotesSync: true });
+        UI.showNotification('All local data cleared', 'success');
+    },
+
+    handleExportData() {
+        const json = Storage.exportData();
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        const stamp = new Date().toISOString().slice(0, 10);
+
+        anchor.href = url;
+        anchor.download = 'finance-backup-' + stamp + '.json';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+
+        UI.showNotification('Backup exported', 'success');
+    },
+
+    async handleImportData(file) {
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            UI.showNotification('Backup file is too large (max 5MB)', 'error');
+            return;
+        }
+
+        const confirmImport = confirm('Import backup file and replace matching saved data in this browser?');
+        if (!confirmImport) return;
+
+        try {
+            const text = await file.text();
+            const result = Storage.importData(text);
+
+            if (result.success) {
+                this.refreshAll({ forceNotesSync: true });
+                UI.showNotification(result.message, 'success');
+            } else {
+                UI.showNotification(result.message, 'error');
+            }
+        } catch (error) {
+            console.error('Import failed:', error);
+            UI.showNotification('Failed to read the selected file', 'error');
+        }
     }
 };
 
-// Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
 
-// Export for console access
 window.App = App;

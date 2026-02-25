@@ -5,6 +5,9 @@
  * @returns {string} A unique identifier
  */
 function generateId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0;
         const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -157,10 +160,11 @@ function isValidEmail(email) {
  * @returns {boolean} True if valid positive number
  */
 function isValidAmount(amount) {
-    return typeof amount === 'number' && 
-           !isNaN(amount) && 
-           amount > 0 && 
-           isFinite(amount);
+    const parsed = typeof amount === 'number' ? amount : parseFloat(amount);
+    return typeof parsed === 'number' &&
+           !isNaN(parsed) &&
+           parsed > 0 &&
+           isFinite(parsed);
 }
 
 /**
@@ -217,9 +221,101 @@ function capitalize(str) {
  * @returns {string} Title case string
  */
 function toTitleCase(str) {
-    return str.replace(/\w\S*/g, (txt) => {
+    if (!str) return '';
+    return String(str).replace(/\w\S*/g, (txt) => {
         return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
+}
+
+/**
+ * Round to 2 decimal places for currency-safe display/storage
+ * @param {number|string} value
+ * @returns {number}
+ */
+function roundCurrency(value) {
+    const parsed = typeof value === 'number' ? value : parseFloat(value);
+    if (!isFinite(parsed)) return 0;
+    return Math.round(parsed * 100) / 100;
+}
+
+/**
+ * Coerce a value to a number with bounds
+ * @param {number|string} value
+ * @param {object} options
+ * @returns {number}
+ */
+function toNumber(value, options = {}) {
+    const {
+        fallback = 0,
+        min = Number.NEGATIVE_INFINITY,
+        max = Number.POSITIVE_INFINITY
+    } = options;
+
+    const parsed = typeof value === 'number' ? value : parseFloat(value);
+    if (!isFinite(parsed)) return fallback;
+    return clamp(roundCurrency(parsed), min, max);
+}
+
+/**
+ * Escape HTML special characters to prevent markup injection
+ * @param {string} value
+ * @returns {string}
+ */
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Sanitize user text input for storage/rendering
+ * @param {string} value
+ * @param {object} options
+ * @returns {string}
+ */
+function sanitizeText(value, options = {}) {
+    const {
+        maxLength = 80,
+        fallback = '',
+        trim = true
+    } = options;
+
+    let result = String(value ?? '');
+    result = result.replace(/[\u0000-\u001F\u007F]/g, ' ');
+    result = result.replace(/\s+/g, ' ');
+    if (trim) result = result.trim();
+    if (maxLength > 0) {
+        result = result.slice(0, maxLength);
+    }
+    return result || fallback;
+}
+
+/**
+ * Normalize a hex color string
+ * @param {string} value
+ * @param {string} fallback
+ * @returns {string}
+ */
+function normalizeHexColor(value, fallback = '#4299e1') {
+    const color = String(value ?? '').trim();
+    return /^#([0-9a-fA-F]{6})$/.test(color) ? color.toLowerCase() : fallback;
+}
+
+/**
+ * Validate a YYYY-MM-DD date string
+ * @param {string} value
+ * @returns {boolean}
+ */
+function isValidDateInput(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value ?? ''))) {
+        return false;
+    }
+
+    const date = new Date(value);
+    return !Number.isNaN(date.getTime()) && formatDateForInput(date) === value;
 }
 
 /**
