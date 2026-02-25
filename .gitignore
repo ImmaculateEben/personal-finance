@@ -19,6 +19,8 @@ Thumbs.db
 # Node (if applicable in future)
 node_modules/
 package-lock.json
+test-results/
+playwright-report/
 
 # Vercel
 .vercel

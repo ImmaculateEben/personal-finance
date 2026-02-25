@@ -283,6 +283,15 @@
                                 <button type="button" class="btn btn-secondary tool-btn danger" id="resetCurrentMonthBtn">Reset Month</button>
                                 <button type="button" class="btn btn-secondary tool-btn danger" id="clearAllDataBtn">Clear All Data</button>
                             </div>
+                            <div class="backup-security">
+                                <label class="backup-toggle">
+                                    <input type="checkbox" id="backupEncryptToggle">
+                                    <span>Encrypt exported backup</span>
+                                </label>
+                                <label for="backupPassphrase" class="backup-pass-label">Backup passphrase</label>
+                                <input type="password" id="backupPassphrase" class="backup-passphrase" autocomplete="new-password" placeholder="Optional for export, required for encrypted import">
+                                <p class="backup-security-note">Uses AES-GCM encryption in your browser (passphrase is never stored).</p>
+                            </div>
                             <input type="file" id="importDataInput" accept="application/json,.json" hidden>
                             <p class="workspace-note">Data stays in this browser. Imports are validated before saving.</p>
                         </div>
@@ -331,6 +340,100 @@
                             <h2 class="section-title">Planned vs Actual</h2>
                             <div class="chart-container">
                                 <canvas id="plannedVsActualChart"></canvas>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="ledger-section">
+                        <div class="card ledger-card">
+                            <h2 class="section-title">Transaction Ledger</h2>
+                            <form id="transactionForm" class="ledger-form" novalidate>
+                                <div class="ledger-form-grid">
+                                    <div class="form-group">
+                                        <label for="transactionAmount">Amount</label>
+                                        <input type="number" id="transactionAmount" name="transactionAmount" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="transactionType">Type</label>
+                                        <select id="transactionType" name="transactionType" required>
+                                            <option value="expense">Expense</option>
+                                            <option value="income">Income</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="transactionCategory">Budget Category</label>
+                                        <select id="transactionCategory" name="transactionCategory" required>
+                                            <option value="">Select a category</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="transactionDate">Date</label>
+                                        <input type="date" id="transactionDate" name="transactionDate" required>
+                                    </div>
+                                    <div class="form-group ledger-form-wide">
+                                        <label for="transactionDescription">Description</label>
+                                        <input type="text" id="transactionDescription" name="transactionDescription" maxlength="120" placeholder="e.g., Supermarket, Rent payment, Salary">
+                                    </div>
+                                </div>
+                                <div class="ledger-form-actions">
+                                    <button type="submit" class="btn btn-primary ledger-submit-btn">Add Transaction</button>
+                                </div>
+                            </form>
+
+                            <div class="ledger-summary-row" aria-label="Transaction summary">
+                                <div class="ledger-summary-chip">
+                                    <span>Income</span>
+                                    <strong id="ledgerIncomeTotal">$0.00</strong>
+                                </div>
+                                <div class="ledger-summary-chip">
+                                    <span>Expenses</span>
+                                    <strong id="ledgerExpenseTotal">$0.00</strong>
+                                </div>
+                                <div class="ledger-summary-chip">
+                                    <span>Balance</span>
+                                    <strong id="ledgerBalanceTotal">$0.00</strong>
+                                </div>
+                                <div class="ledger-summary-chip">
+                                    <span>Count</span>
+                                    <strong id="ledgerTransactionCount">0</strong>
+                                </div>
+                            </div>
+
+                            <div class="filter-section ledger-filters" id="ledgerFilters">
+                                <div class="filter-controls">
+                                    <div class="filter-group">
+                                        <label for="ledgerFilterType">Type</label>
+                                        <select id="ledgerFilterType">
+                                            <option value="all">All</option>
+                                            <option value="income">Income</option>
+                                            <option value="expense">Expense</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label for="ledgerSearch">Search</label>
+                                        <input type="search" id="ledgerSearch" placeholder="Description or category">
+                                    </div>
+                                    <div class="filter-group">
+                                        <label for="ledgerSort">Sort</label>
+                                        <select id="ledgerSort">
+                                            <option value="newest">Newest first</option>
+                                            <option value="oldest">Oldest first</option>
+                                            <option value="amount-desc">Amount high-low</option>
+                                            <option value="amount-asc">Amount low-high</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary ledger-clear-btn" id="ledgerClearFilters">Clear</button>
+                                </div>
+                            </div>
+
+                            <div class="transactions-list" id="transactionsList" aria-live="polite"></div>
+                            <div class="empty-state" id="emptyState" hidden>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path d="M21 8V7a2 2 0 0 0-2-2h-3l-2-2H10L8 5H5a2 2 0 0 0-2 2v1"/>
+                                    <rect x="3" y="8" width="18" height="13" rx="2"/>
+                                    <path d="M8 13h8M8 17h5"/>
+                                </svg>
+                                <p>No transactions for this period yet.</p>
                             </div>
                         </div>
                     </section>

@@ -1,4 +1,4 @@
-// localStorage Management Module
+﻿// localStorage Management Module
 
 const Storage = {
     // Keys
@@ -158,7 +158,8 @@ const Storage = {
 
     _normalizeBudgetType(value, fallback) {
         const validTypes = ['income', 'variable', 'fixed', 'savings', 'debt'];
-        return validTypes.includes(value) ? value : (fallback || 'variable');
+        if (validTypes.includes(value)) return value;
+        return fallback === undefined ? 'variable' : fallback;
     },
 
     _defaultColorForType(type) {
@@ -525,12 +526,17 @@ const Storage = {
         const amount = toNumber(raw.amount, { fallback: 0, min: 0.01, max: 1000000000 });
         if (amount <= 0) return null;
 
+        const budgetCategoryId = sanitizeText(raw.budgetCategoryId, { maxLength: 64, fallback: '' });
+        const budgetType = this._normalizeBudgetType(raw.budgetType, null);
+
         return {
             id: sanitizeText(raw.id, { maxLength: 64, fallback: generateId() }),
             amount: amount,
             type: type,
             category: toTitleCase(sanitizeText(raw.category, { maxLength: 40, fallback: 'Other' })),
             description: sanitizeText(raw.description, { maxLength: 120, fallback: 'Transaction' }),
+            budgetCategoryId: budgetCategoryId || undefined,
+            budgetType: budgetType || undefined,
             date: date,
             createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
             updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : undefined
@@ -810,3 +816,4 @@ const Storage = {
 
 // Export for use in other modules
 window.Storage = Storage;
+

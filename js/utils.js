@@ -319,6 +319,162 @@ function isValidDateInput(value) {
 }
 
 /**
+ * Convert bytes to base64
+ * @param {Uint8Array} bytes
+ * @returns {string}
+ */
+function bytesToBase64(bytes) {
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    return btoa(binary);
+}
+
+/**
+ * Convert base64 to bytes
+ * @param {string} base64
+ * @returns {Uint8Array}
+ */
+function base64ToBytes(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+}
+
+/**
+ * Check if Web Crypto API (subtle) is available
+ * @returns {boolean}
+ */
+function supportsWebCrypto() {
+    return typeof crypto !== 'undefined' && !!crypto.subtle;
+}
+
+/**
+ * Derive AES-GCM key from a passphrase using PBKDF2
+ * @param {string} passphrase
+ * @param {Uint8Array} salt
+ * @param {number} iterations
+ * @returns {Promise<CryptoKey>}
+ */
+async function deriveBackupKey(passphrase, salt, iterations = 250000) {
+    if (!supportsWebCrypto()) {
+        throw new Error('Web Crypto is not available');
+    }
+
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(String(passphrase)),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: 'PBKDF2',
+            salt,
+            iterations,
+            hash: 'SHA-256'
+        },
+        keyMaterial,
+        {
+            name: 'AES-GCM',
+            length: 256
+        },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+/**
+ * Encrypt JSON backup plaintext with a passphrase
+ * @param {string} plaintext
+ * @param {string} passphrase
+ * @returns {Promise<object>}
+ */
+async function encryptBackupJson(plaintext, passphrase) {
+    const safePassphrase = String(passphrase || '');
+    if (!safePassphrase) {
+        throw new Error('Passphrase is required');
+    }
+
+    if (!supportsWebCrypto()) {
+        throw new Error('Web Crypto is not available in this browser');
+    }
+
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const iterations = 250000;
+    const key = await deriveBackupKey(safePassphrase, salt, iterations);
+    const encoder = new TextEncoder();
+    const ciphertext = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        encoder.encode(String(plaintext))
+    );
+
+    return {
+        app: 'personal-finance-dashboard-backup',
+        encryptedBackup: true,
+        encryptionVersion: 1,
+        exportedAt: new Date().toISOString(),
+        encryption: {
+            algorithm: 'AES-GCM',
+            iv: bytesToBase64(iv),
+            kdf: 'PBKDF2',
+            hash: 'SHA-256',
+            iterations,
+            salt: bytesToBase64(salt)
+        },
+        payload: bytesToBase64(new Uint8Array(ciphertext))
+    };
+}
+
+/**
+ * Decrypt encrypted backup wrapper to plaintext JSON
+ * @param {object} encryptedBackup
+ * @param {string} passphrase
+ * @returns {Promise<string>}
+ */
+async function decryptBackupJson(encryptedBackup, passphrase) {
+    if (!encryptedBackup || typeof encryptedBackup !== 'object' || !encryptedBackup.encryptedBackup) {
+        throw new Error('Invalid encrypted backup format');
+    }
+    if (!supportsWebCrypto()) {
+        throw new Error('Web Crypto is not available in this browser');
+    }
+
+    const encryption = encryptedBackup.encryption || {};
+    const iterations = toNumber(encryption.iterations, { fallback: 250000, min: 100000, max: 2000000 });
+    const salt = base64ToBytes(String(encryption.salt || ''));
+    const iv = base64ToBytes(String(encryption.iv || ''));
+    const payloadBytes = base64ToBytes(String(encryptedBackup.payload || ''));
+
+    if (salt.length < 8 || iv.length !== 12 || payloadBytes.length === 0) {
+        throw new Error('Encrypted backup is malformed');
+    }
+
+    const key = await deriveBackupKey(String(passphrase || ''), salt, iterations);
+    try {
+        const decrypted = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv },
+            key,
+            payloadBytes
+        );
+        return new TextDecoder().decode(decrypted);
+    } catch (error) {
+        throw new Error('Failed to decrypt backup. Check the passphrase.');
+    }
+}
+
+/**
  * Parse query string to object
  * @returns {object} Query parameters
  */

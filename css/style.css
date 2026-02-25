@@ -367,6 +367,65 @@ body {
     color: var(--text-muted);
 }
 
+.backup-security {
+    margin-top: 0.875rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--background);
+}
+
+.backup-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.625rem;
+    cursor: pointer;
+}
+
+.backup-toggle input {
+    width: 16px;
+    height: 16px;
+}
+
+.backup-pass-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.375rem;
+}
+
+.backup-passphrase {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    outline: none;
+}
+
+.backup-passphrase:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.12);
+}
+
+.backup-passphrase:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.backup-security-note {
+    margin-top: 0.5rem;
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
 .notes-textarea {
     width: 100%;
     min-height: 120px;
@@ -627,7 +686,10 @@ body {
 
 .col-actual {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.25rem;
 }
 
 .actual-value {
@@ -661,6 +723,24 @@ body {
 .actual-input:focus {
     background: var(--bg-tertiary);
     border-color: var(--primary-color);
+}
+
+.actual-input.ledger-actual-overridden {
+    border-color: rgba(236, 72, 153, 0.2);
+}
+
+.ledger-actual-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.125rem 0.375rem;
+    border-radius: 999px;
+    background: rgba(236, 72, 153, 0.1);
+    color: #be185d;
+    border: 1px solid rgba(236, 72, 153, 0.18);
+    font-size: 0.625rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .col-spent {
@@ -947,6 +1027,97 @@ body {
 .chart-container canvas {
     max-width: 100%;
     max-height: 100%;
+}
+
+.ledger-section {
+    display: block;
+}
+
+.ledger-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ledger-form {
+    padding: 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--background);
+}
+
+.ledger-form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.ledger-form-wide {
+    grid-column: span 4;
+}
+
+.ledger-form .form-group {
+    margin-bottom: 0;
+}
+
+.ledger-form-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ledger-submit-btn {
+    width: auto;
+    min-width: 180px;
+}
+
+.ledger-summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.625rem;
+}
+
+.ledger-summary-chip {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--background);
+    padding: 0.625rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.ledger-summary-chip span {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ledger-summary-chip strong {
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.ledger-filters {
+    padding: 0;
+}
+
+.ledger-filters .filter-controls {
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+
+.ledger-clear-btn {
+    width: auto;
+    align-self: flex-end;
+    margin-bottom: 0;
+}
+
+.transactions-list {
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.5rem;
 }
 
 /* Filter Section */
@@ -1597,6 +1768,18 @@ body {
     .tools-grid {
         grid-template-columns: 1fr;
     }
+
+    .ledger-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ledger-form-wide {
+        grid-column: span 2;
+    }
+
+    .ledger-summary-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     
     .chart-card {
         padding: 1rem;
@@ -1912,6 +2095,7 @@ body {
     
     .transaction-item {
         flex-wrap: wrap;
+        position: relative;
     }
     
     .transaction-type-indicator {
@@ -1936,6 +2120,24 @@ body {
         position: absolute;
         right: 0.25rem;
         bottom: 0.25rem;
+    }
+
+    .ledger-form-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .ledger-form-wide {
+        grid-column: span 1;
+    }
+
+    .ledger-summary-row {
+        grid-template-columns: 1fr;
+    }
+
+    .ledger-submit-btn {
+        width: 100%;
+        min-width: 0;
     }
     
     .empty-state {

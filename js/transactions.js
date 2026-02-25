@@ -1,377 +1,389 @@
-// Transaction Management Module
+﻿// Transaction Management Module (period-aware, budget-linked ledger)
 
 const TransactionManager = {
-    /**
-     * Get all transactions
-     * @returns {Array} Array of transactions
-     */
     getAll() {
         return Storage.getTransactions();
     },
-    
-    /**
-     * Get transactions sorted by date (newest first)
-     * @returns {Array} Sorted transactions
-     */
-    getSortedByDate() {
-        const transactions = this.getAll();
-        return transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-    },
-    
-    /**
-     * Add a new transaction
-     * @param {object} transactionData - Transaction data
-     * @returns {object} Result with success status and transaction
-     */
-    add(transactionData) {
-        const transaction = {
-            id: generateId(),
-            amount: parseFloat(transactionData.amount),
-            type: transactionData.type,
-            category: toTitleCase(transactionData.category.trim()),
-            description: transactionData.description.trim(),
-            date: transactionData.date,
-            createdAt: new Date().toISOString()
-        };
-        
-        const success = Storage.addTransaction(transaction);
-        
-        if (success) {
-            return { success: true, transaction };
+
+    getSortedByDate(transactions = null, sort = 'newest') {
+        const txns = (transactions || this.getAll()).slice();
+        const compareDateDesc = (a, b) => new Date(b.date) - new Date(a.date);
+
+        if (sort === 'oldest') {
+            return txns.sort((a, b) => new Date(a.date) - new Date(b.date));
         }
-        return { success: false, transaction: null };
+        if (sort === 'amount-desc') {
+            return txns.sort((a, b) => b.amount - a.amount || compareDateDesc(a, b));
+        }
+        if (sort === 'amount-asc') {
+            return txns.sort((a, b) => a.amount - b.amount || compareDateDesc(a, b));
+        }
+
+        return txns.sort(compareDateDesc);
     },
-    
-    /**
-     * Update an existing transaction
-     * @param {string} id - Transaction ID
-     * @param {object} updates - Fields to update
-     * @returns {object} Result with success status
-     */
-    update(id, updates) {
-        if (updates.amount) updates.amount = parseFloat(updates.amount);
-        if (updates.category) updates.category = toTitleCase(updates.category.trim());
-        if (updates.description) updates.description = updates.description.trim();
-        updates.updatedAt = new Date().toISOString();
-        
-        const success = Storage.updateTransaction(id, updates);
-        return { success };
+
+    _getSelectedPeriod() {
+        return {
+            month: Storage.getSelectedMonth(),
+            year: Storage.getSelectedYear()
+        };
     },
-    
-    /**
-     * Delete a transaction
-     * @param {string} id - Transaction ID
-     * @returns {object} Result with success status
-     */
-    delete(id) {
-        const success = Storage.deleteTransaction(id);
-        return { success };
+
+    _isInPeriod(transaction, month, year) {
+        const txnDate = new Date(transaction.date);
+        return !Number.isNaN(txnDate.getTime()) && txnDate.getMonth() === month && txnDate.getFullYear() === year;
     },
-    
-    /**
-     * Filter transactions
-     * @param {object} filters - Filter criteria
-     * @returns {Array} Filtered transactions
-     */
+
+    getByMonth(month, year) {
+        return this.getAll().filter(t => this._isInPeriod(t, month, year));
+    },
+
+    getBySelectedPeriod() {
+        const { month, year } = this._getSelectedPeriod();
+        return this.getByMonth(month, year);
+    },
+
     filter(filters = {}) {
-        let transactions = this.getAll();
-        
-        // Filter by type
+        const month = filters.month !== undefined ? filters.month : Storage.getSelectedMonth();
+        const year = filters.year !== undefined ? filters.year : Storage.getSelectedYear();
+        let transactions = this.getByMonth(month, year);
+
         if (filters.type && filters.type !== 'all') {
             transactions = transactions.filter(t => t.type === filters.type);
         }
-        
-        // Filter by date
-        if (filters.date) {
+
+        if (filters.date && isValidDateInput(filters.date)) {
             transactions = transactions.filter(t => t.date === filters.date);
         }
-        
-        // Filter by date range
-        if (filters.startDate) {
+
+        if (filters.startDate && isValidDateInput(filters.startDate)) {
             transactions = transactions.filter(t => t.date >= filters.startDate);
         }
-        if (filters.endDate) {
+        if (filters.endDate && isValidDateInput(filters.endDate)) {
             transactions = transactions.filter(t => t.date <= filters.endDate);
         }
-        
-        // Filter by category
+
         if (filters.category) {
-            transactions = transactions.filter(t => 
-                t.category.toLowerCase().includes(filters.category.toLowerCase())
-            );
-        }
-        
-        // Filter by description
-        if (filters.search) {
-            const searchLower = filters.search.toLowerCase();
-            transactions = transactions.filter(t => 
-                t.description.toLowerCase().includes(searchLower) ||
-                t.category.toLowerCase().includes(searchLower)
-            );
-        }
-        
-        return transactions;
-    },
-    
-    /**
-     * Calculate summary statistics
-     * @param {Array} transactions - Transactions to analyze (optional)
-     * @returns {object} Summary object
-     */
-    calculateSummary(transactions = null) {
-        const txns = transactions || this.getAll();
-        
-        const income = txns
-            .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0);
-        
-        const expenses = txns
-            .filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0);
-        
-        return {
-            totalIncome: income,
-            totalExpenses: expenses,
-            balance: income - expenses,
-            transactionCount: txns.length
-        };
-    },
-    
-    /**
-     * Get transactions by month
-     * @param {number} month - Month (0-11)
-     * @param {number} year - Year
-     * @returns {Array} Filtered transactions
-     */
-    getByMonth(month, year) {
-        return this.getAll().filter(t => {
-            const txnDate = new Date(t.date);
-            return txnDate.getMonth() === month && txnDate.getFullYear() === year;
-        });
-    },
-    
-    /**
-     * Get transactions for current month
-     * @returns {Array} Current month transactions
-     */
-    getCurrentMonth() {
-        const { month, year } = getCurrentMonth();
-        return this.getByMonth(month, year);
-    },
-    
-    /**
-     * Get income/expense data grouped by month
-     * @param {number} months - Number of months to include
-     * @returns {object} Monthly data
-     */
-    getMonthlyData(months = 6) {
-        const now = new Date();
-        const data = {
-            labels: [],
-            income: [],
-            expenses: []
-        };
-        
-        for (let i = months - 1; i >= 0; i--) {
-            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const monthData = this.getByMonth(date.getMonth(), date.getFullYear());
-            
-            const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-            data.labels.push(monthLabel);
-            
-            data.income.push(
-                monthData.filter(t => t.type === 'income')
-                    .reduce((sum, t) => sum + t.amount, 0)
-            );
-            
-            data.expenses.push(
-                monthData.filter(t => t.type === 'expense')
-                    .reduce((sum, t) => sum + t.amount, 0)
-            );
-        }
-        
-        return data;
-    },
-    
-    /**
-     * Get expenses grouped by category
-     * @returns {Array} Category totals
-     */
-    getExpensesByCategory() {
-        const expenses = this.getAll().filter(t => t.type === 'expense');
-        const categoryTotals = {};
-        
-        expenses.forEach(t => {
-            if (!categoryTotals[t.category]) {
-                categoryTotals[t.category] = 0;
+            const query = sanitizeText(filters.category, { maxLength: 40, fallback: '' }).toLowerCase();
+            if (query) {
+                transactions = transactions.filter(t => t.category.toLowerCase().includes(query));
             }
-            categoryTotals[t.category] += t.amount;
-        });
-        
-        return Object.entries(categoryTotals).map(([category, total]) => ({
-            category,
-            total
-        }));
+        }
+
+        if (filters.search) {
+            const searchLower = sanitizeText(filters.search, { maxLength: 120, fallback: '' }).toLowerCase();
+            if (searchLower) {
+                transactions = transactions.filter(t =>
+                    t.description.toLowerCase().includes(searchLower) ||
+                    t.category.toLowerCase().includes(searchLower)
+                );
+            }
+        }
+
+        return this.getSortedByDate(transactions, filters.sort || 'newest');
     },
-    
-    /**
-     * Get a single transaction by ID
-     * @param {string} id - Transaction ID
-     * @returns {object|null} Transaction or null
-     */
+
+    _findBudgetCategoryById(categoryId, month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        if (!categoryId) return null;
+        return Storage.getBudgetCategories(month, year).find(c => c.id === categoryId) || null;
+    },
+
+    _isValidTransactionType(value) {
+        return value === 'income' || value === 'expense';
+    },
+
+    _deriveTransactionTypeFromBudgetCategory(category) {
+        if (!category) return null;
+        return category.type === 'income' ? 'income' : 'expense';
+    },
+
+    add(transactionData) {
+        const selectedPeriod = this._getSelectedPeriod();
+        const rawDate = sanitizeText(transactionData && transactionData.date, { maxLength: 10, fallback: getTodayDate() });
+        const date = isValidDateInput(rawDate) ? rawDate : getTodayDate();
+
+        const budgetCategory = this._findBudgetCategoryById(transactionData && transactionData.budgetCategoryId, selectedPeriod.month, selectedPeriod.year);
+        const derivedType = this._deriveTransactionTypeFromBudgetCategory(budgetCategory);
+        const requestedType = this._isValidTransactionType(transactionData && transactionData.type) ? transactionData.type : null;
+        const type = derivedType || requestedType;
+
+        if (!this._isValidTransactionType(type)) {
+            return { success: false, error: 'invalid_type' };
+        }
+
+        const amount = toNumber(transactionData && transactionData.amount, { fallback: 0, min: 0, max: 1000000000 });
+        if (!(amount > 0)) {
+            return { success: false, error: 'invalid_amount' };
+        }
+
+        let categoryName = sanitizeText(transactionData && transactionData.category, { maxLength: 40, fallback: '' });
+        let budgetType;
+
+        if (budgetCategory) {
+            categoryName = budgetCategory.name;
+            budgetType = budgetCategory.type;
+        } else {
+            categoryName = toTitleCase(categoryName || (type === 'income' ? 'Income' : 'Expense'));
+            budgetType = type === 'income' ? 'income' : undefined;
+        }
+
+        const description = sanitizeText(transactionData && transactionData.description, {
+            maxLength: 120,
+            fallback: categoryName || (type === 'income' ? 'Income' : 'Expense')
+        });
+
+        const transaction = {
+            id: generateId(),
+            amount,
+            type,
+            category: categoryName,
+            budgetCategoryId: budgetCategory ? budgetCategory.id : undefined,
+            budgetType: budgetType,
+            description,
+            date,
+            createdAt: new Date().toISOString()
+        };
+
+        const success = Storage.addTransaction(transaction);
+        return success ? { success: true, transaction } : { success: false, error: 'storage_error' };
+    },
+
+    update(id, updates) {
+        const safeUpdates = { ...updates };
+        if (safeUpdates.amount !== undefined) {
+            safeUpdates.amount = toNumber(safeUpdates.amount, { fallback: 0, min: 0, max: 1000000000 });
+        }
+        if (safeUpdates.category !== undefined) {
+            safeUpdates.category = toTitleCase(sanitizeText(safeUpdates.category, { maxLength: 40, fallback: 'Other' }));
+        }
+        if (safeUpdates.description !== undefined) {
+            safeUpdates.description = sanitizeText(safeUpdates.description, { maxLength: 120, fallback: 'Transaction' });
+        }
+        if (safeUpdates.date !== undefined && !isValidDateInput(safeUpdates.date)) {
+            delete safeUpdates.date;
+        }
+        safeUpdates.updatedAt = new Date().toISOString();
+
+        const success = Storage.updateTransaction(id, safeUpdates);
+        return { success };
+    },
+
+    delete(id) {
+        return { success: Storage.deleteTransaction(id) };
+    },
+
     getById(id) {
         return this.getAll().find(t => t.id === id) || null;
     },
-    
-    /**
-     * Clear all transactions
-     * @returns {boolean} Success status
-     */
+
     clearAll() {
         return Storage.clearTransactions();
     },
-    
-    /**
-     * Get unique categories from transactions
-     * @returns {Array} Unique category names
-     */
-    getUniqueCategories() {
-        const transactions = this.getAll();
-        const categories = new Set(transactions.map(t => t.category));
+
+    calculateSummary(transactions = null) {
+        const txns = Array.isArray(transactions) ? transactions : this.getAll();
+        const income = roundCurrency(txns.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0));
+        const expenses = roundCurrency(txns.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0));
+
+        return {
+            totalIncome: income,
+            totalExpenses: expenses,
+            balance: roundCurrency(income - expenses),
+            transactionCount: txns.length
+        };
+    },
+
+    getPeriodSummary(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear(), filters = {}) {
+        const transactions = this.filter({ ...filters, month, year });
+        return {
+            transactions,
+            summary: this.calculateSummary(transactions)
+        };
+    },
+
+    getUniqueCategories(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const categories = new Set(this.getByMonth(month, year).map(t => t.category));
         return Array.from(categories).sort();
     },
-    
-    /**
-     * Get spending trends (daily average for last N days)
-     * @param {number} days - Number of days
-     * @returns {number} Daily average
-     */
-    getSpendingTrend(days = 30) {
-        const now = new Date();
-        const startDate = new Date(now.setDate(now.getDate() - days));
-        const startDateStr = startDate.toISOString().split('T')[0];
-        
-        const recentExpenses = this.getAll().filter(t => 
-            t.type === 'expense' && t.date >= startDateStr
-        );
-        
-        const total = recentExpenses.reduce((sum, t) => sum + t.amount, 0);
-        return total / days;
+
+    getLedgerCategoryOptions(transactionType = 'expense', month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const categories = Storage.getBudgetCategories(month, year);
+        if (transactionType === 'income') {
+            return categories.filter(c => c.type === 'income');
+        }
+        return categories.filter(c => c.type !== 'income');
     },
-    
-    // ==================== Budget Calculations ==================== //
-    
-    /**
-     * Calculate actual spending by budget category
-     * @returns {object} Category actual amounts
-     */
-    getActualByBudgetCategory() {
-        const transactions = this.getAll();
-        const actualByCategory = {};
-        
-        // Get current month transactions
-        const now = new Date();
-        const currentMonthTxns = transactions.filter(t => {
-            const txnDate = new Date(t.date);
-            return txnDate.getMonth() === now.getMonth() && 
-                   txnDate.getFullYear() === now.getFullYear();
-        });
-        
-        currentMonthTxns.forEach(t => {
-            if (!actualByCategory[t.category]) {
-                actualByCategory[t.category] = 0;
-            }
-            actualByCategory[t.category] += t.amount;
-        });
-        
-        return actualByCategory;
-    },
-    
-    /**
-     * Calculate spending by category type (variable, fixed, savings, debt)
-     * @returns {object} Type totals
-     */
-    getSpendingByType() {
-        const actualByCategory = this.getActualByBudgetCategory();
-        const budgetCategories = Storage.getBudgetCategories();
-        const typeTotals = {
+
+    getBudgetActualsMap(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const categories = Storage.getBudgetCategories(month, year);
+        const categoryById = new Map(categories.map(cat => [cat.id, cat]));
+        const categoryNameLookup = new Map(categories.map(cat => [cat.name.toLowerCase(), cat]));
+
+        const byId = {};
+        const byName = {};
+        const totalsByType = {
+            income: 0,
             variable: 0,
             fixed: 0,
             savings: 0,
-            debt: 0,
-            income: 0
+            debt: 0
         };
-        
-        // Map categories to types
-        budgetCategories.forEach(cat => {
-            const actual = actualByCategory[cat.name] || 0;
-            if (typeTotals.hasOwnProperty(cat.type)) {
-                typeTotals[cat.type] += actual;
+
+        this.getByMonth(month, year).forEach(txn => {
+            let category = null;
+
+            if (txn.budgetCategoryId && categoryById.has(txn.budgetCategoryId)) {
+                category = categoryById.get(txn.budgetCategoryId);
+            } else if (txn.category && categoryNameLookup.has(txn.category.toLowerCase())) {
+                category = categoryNameLookup.get(txn.category.toLowerCase());
+            }
+
+            if (!category) {
+                return;
+            }
+
+            byId[category.id] = roundCurrency((byId[category.id] || 0) + txn.amount);
+            byName[category.name] = roundCurrency((byName[category.name] || 0) + txn.amount);
+
+            if (totalsByType.hasOwnProperty(category.type)) {
+                totalsByType[category.type] = roundCurrency(totalsByType[category.type] + txn.amount);
             }
         });
-        
-        // Add income transactions
-        const transactions = this.getAll();
-        const now = new Date();
-        const currentMonthIncome = transactions.filter(t => {
-            const txnDate = new Date(t.date);
-            return t.type === 'income' && 
-                   txnDate.getMonth() === now.getMonth() && 
-                   txnDate.getFullYear() === now.getFullYear();
-        }).reduce((sum, t) => sum + t.amount, 0);
-        
-        typeTotals.income = currentMonthIncome;
-        
-        return typeTotals;
+
+        return {
+            byId,
+            byName,
+            totalsByType
+        };
     },
-    
-    /**
-     * Get planned vs actual comparison for all categories
-     * @returns {Array} Comparison data
-     */
-    getPlannedVsActual() {
-        const actualByCategory = this.getActualByBudgetCategory();
-        const budgetCategories = Storage.getBudgetCategories();
-        
-        return budgetCategories.map(cat => ({
+
+    getActualByBudgetCategory(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        return this.getBudgetActualsMap(month, year).byName;
+    },
+
+    getEffectiveBudgetCategories(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const categories = Storage.getBudgetCategories(month, year);
+        const txnActuals = this.getBudgetActualsMap(month, year).byId;
+
+        return categories.map(cat => {
+            const manualActual = toNumber(cat.actual, { fallback: 0, min: 0 });
+            const transactionActual = toNumber(txnActuals[cat.id], { fallback: 0, min: 0 });
+            const effectiveActual = cat.type === 'income'
+                ? (transactionActual > 0 ? transactionActual : manualActual)
+                : (transactionActual > 0 ? transactionActual : manualActual);
+
+            return {
+                ...cat,
+                manualActual,
+                transactionActual,
+                actualEffective: roundCurrency(effectiveActual),
+                actualSource: transactionActual > 0 ? 'transactions' : 'manual'
+            };
+        });
+    },
+
+    getEffectiveBudgetMetrics(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const base = Storage.getBudgetMetrics(month, year);
+        const effectiveCategories = this.getEffectiveBudgetCategories(month, year);
+
+        const actuals = {
+            income: 0,
+            variable: 0,
+            fixed: 0,
+            savings: 0,
+            debt: 0
+        };
+
+        effectiveCategories.forEach(cat => {
+            if (actuals.hasOwnProperty(cat.type)) {
+                actuals[cat.type] = roundCurrency(actuals[cat.type] + toNumber(cat.actualEffective, { fallback: 0, min: 0 }));
+            }
+        });
+
+        const actualOutflow = roundCurrency(actuals.variable + actuals.fixed + actuals.savings + actuals.debt);
+        const incomeBasis = base.incomePlanned;
+        const actualBalance = roundCurrency(incomeBasis - actualOutflow);
+
+        return {
+            ...base,
+            incomeActual: actuals.income,
+            variableActual: actuals.variable,
+            fixedActual: actuals.fixed,
+            savingsActual: actuals.savings,
+            debtActual: actuals.debt,
+            actualOutflow,
+            actualBalance,
+            actualUtilizationPercent: incomeBasis > 0 ? roundCurrency((actualOutflow / incomeBasis) * 100) : 0,
+            effectiveCategories
+        };
+    },
+
+    getSpendingByType(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const metrics = this.getEffectiveBudgetMetrics(month, year);
+        return {
+            variable: metrics.variableActual,
+            fixed: metrics.fixedActual,
+            savings: metrics.savingsActual,
+            debt: metrics.debtActual,
+            income: metrics.incomeActual > 0 ? metrics.incomeActual : metrics.incomePlanned
+        };
+    },
+
+    getPlannedVsActual(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const effective = this.getEffectiveBudgetCategories(month, year);
+        return effective.map(cat => ({
             id: cat.id,
             name: cat.name,
             type: cat.type,
             color: cat.color,
-            planned: cat.planned,
-            actual: actualByCategory[cat.name] || 0,
-            remaining: cat.planned - (actualByCategory[cat.name] || 0),
-            percentageUsed: cat.planned > 0 ? 
-                Math.min(((actualByCategory[cat.name] || 0) / cat.planned) * 100, 100) : 0
+            planned: toNumber(cat.planned, { fallback: 0, min: 0 }),
+            actual: toNumber(cat.actualEffective, { fallback: 0, min: 0 }),
+            remaining: roundCurrency(toNumber(cat.planned, { fallback: 0, min: 0 }) - toNumber(cat.actualEffective, { fallback: 0, min: 0 })),
+            percentageUsed: toNumber(cat.planned, { fallback: 0, min: 0 }) > 0
+                ? roundCurrency((toNumber(cat.actualEffective, { fallback: 0, min: 0 }) / toNumber(cat.planned, { fallback: 0, min: 0 })) * 100)
+                : 0
         }));
     },
-    
-    /**
-     * Calculate total spent for current month
-     * @returns {number} Total spent
-     */
-    getCurrentMonthSpent() {
-        const transactions = this.getAll();
-        const now = new Date();
-        
-        return transactions
-            .filter(t => t.type === 'expense')
-            .filter(t => {
-                const txnDate = new Date(t.date);
-                return txnDate.getMonth() === now.getMonth() && 
-                       txnDate.getFullYear() === now.getFullYear();
-            })
-            .reduce((sum, t) => sum + t.amount, 0);
+
+    getCurrentMonth() {
+        return this.getBySelectedPeriod();
     },
-    
-    /**
-     * Get allocation summary (percentage by type)
-     * @returns {object} Allocation percentages
-     */
-    getAllocationSummary() {
-        const spendingByType = this.getSpendingByType();
+
+    getCurrentMonthSpent() {
+        return roundCurrency(this.getBySelectedPeriod()
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0));
+    },
+
+    getExpensesByCategory(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const expenses = this.getByMonth(month, year).filter(t => t.type === 'expense');
+        const totals = {};
+        expenses.forEach(t => {
+            totals[t.category] = roundCurrency((totals[t.category] || 0) + t.amount);
+        });
+
+        return Object.entries(totals).map(([category, total]) => ({ category, total }));
+    },
+
+    getMonthlyData(months = 6) {
+        const now = new Date();
+        const data = { labels: [], income: [], expenses: [] };
+
+        for (let i = months - 1; i >= 0; i -= 1) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthData = this.getByMonth(date.getMonth(), date.getFullYear());
+            data.labels.push(date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+            data.income.push(roundCurrency(monthData.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)));
+            data.expenses.push(roundCurrency(monthData.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)));
+        }
+
+        return data;
+    },
+
+    getAllocationSummary(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        const spendingByType = this.getSpendingByType(month, year);
         const totalIncome = spendingByType.income;
-        
+
         if (totalIncome <= 0) {
             return {
                 variable: { amount: 0, percentage: 0 },
@@ -379,36 +391,24 @@ const TransactionManager = {
                 savings: { amount: 0, percentage: 0 },
                 debt: { amount: 0, percentage: 0 },
                 totalIncome: 0,
-                totalAllocated: 0
+                totalAllocated: 0,
+                unallocated: 0
             };
         }
-        
-        const totalAllocated = spendingByType.variable + spendingByType.fixed + 
-                               spendingByType.savings + spendingByType.debt;
-        
+
+        const totalAllocated = roundCurrency(spendingByType.variable + spendingByType.fixed + spendingByType.savings + spendingByType.debt);
+
         return {
-            variable: {
-                amount: spendingByType.variable,
-                percentage: (spendingByType.variable / totalIncome) * 100
-            },
-            fixed: {
-                amount: spendingByType.fixed,
-                percentage: (spendingByType.fixed / totalIncome) * 100
-            },
-            savings: {
-                amount: spendingByType.savings,
-                percentage: (spendingByType.savings / totalIncome) * 100
-            },
-            debt: {
-                amount: spendingByType.debt,
-                percentage: (spendingByType.debt / totalIncome) * 100
-            },
-            totalIncome: totalIncome,
-            totalAllocated: totalAllocated,
-            unallocated: Math.max(0, totalIncome - totalAllocated)
+            variable: { amount: spendingByType.variable, percentage: roundCurrency((spendingByType.variable / totalIncome) * 100) },
+            fixed: { amount: spendingByType.fixed, percentage: roundCurrency((spendingByType.fixed / totalIncome) * 100) },
+            savings: { amount: spendingByType.savings, percentage: roundCurrency((spendingByType.savings / totalIncome) * 100) },
+            debt: { amount: spendingByType.debt, percentage: roundCurrency((spendingByType.debt / totalIncome) * 100) },
+            totalIncome,
+            totalAllocated,
+            unallocated: roundCurrency(Math.max(0, totalIncome - totalAllocated))
         };
     }
 };
 
-// Export for use in other modules
 window.TransactionManager = TransactionManager;
+

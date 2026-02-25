@@ -1,7 +1,8 @@
-// Main Application Module (Budget Dashboard)
+﻿// Main Application Module (Budget Dashboard + Transaction Ledger)
 
 const App = {
     _notesSaveHandler: null,
+    _ledgerFilterRefresh: null,
     _activePeriodKey: null,
 
     init() {
@@ -12,6 +13,7 @@ const App = {
         this.initCurrencySelector();
         this.initPeriodSelectors();
         this.initBudgetItemModal();
+        this.initTransactionLedger();
         this.initDataTools();
         this.initNotes();
         this.initGlobalEvents();
@@ -51,14 +53,14 @@ const App = {
         if (monthSelector) {
             monthSelector.addEventListener('change', (event) => {
                 Storage.setSelectedMonth(parseInt(event.target.value, 10));
-                this.refreshAll({ forceNotesSync: true });
+                this.refreshAll({ forceNotesSync: true, forceTransactionDateSync: true });
             });
         }
 
         if (yearSelector) {
             yearSelector.addEventListener('change', (event) => {
                 Storage.setSelectedYear(parseInt(event.target.value, 10));
-                this.refreshAll({ forceNotesSync: true });
+                this.refreshAll({ forceNotesSync: true, forceTransactionDateSync: true });
             });
         }
 
@@ -94,10 +96,7 @@ const App = {
         const closeBtn = document.getElementById('closeBudgetItemModal');
         const form = document.getElementById('budgetItemForm');
         const overlay = modal.querySelector('.modal-overlay');
-
-        const closeModal = () => {
-            UI.hideModal('budgetItemModal');
-        };
+        const closeModal = () => UI.hideModal('budgetItemModal');
 
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -137,9 +136,7 @@ const App = {
         form.budgetItemColor.value = typeColors[safeType] || '#4299e1';
 
         UI.showModal('budgetItemModal');
-        setTimeout(() => {
-            form.budgetItemName.focus();
-        }, 0);
+        setTimeout(() => form.budgetItemName.focus(), 0);
     },
 
     handleBudgetItemSubmit(form) {
@@ -149,9 +146,7 @@ const App = {
 
         const name = sanitizeText(form.budgetItemName.value, { maxLength: 40, fallback: '' });
         const planned = toNumber(form.budgetItemPlanned.value, { fallback: 0, min: 0, max: 1000000000 });
-        const actual = type === 'income'
-            ? 0
-            : toNumber(form.budgetItemActual.value, { fallback: 0, min: 0, max: 1000000000 });
+        const actual = type === 'income' ? 0 : toNumber(form.budgetItemActual.value, { fallback: 0, min: 0, max: 1000000000 });
         const color = normalizeHexColor(form.budgetItemColor.value, '#4299e1');
 
         if (!name) {
@@ -160,20 +155,7 @@ const App = {
             return;
         }
 
-        if (planned < 0 || actual < 0) {
-            UI.showNotification('Amounts cannot be negative', 'error');
-            return;
-        }
-
-        const success = Storage.addBudgetCategory({
-            id: generateId(),
-            name,
-            type,
-            color,
-            planned,
-            actual
-        });
-
+        const success = Storage.addBudgetCategory({ id: generateId(), name, type, color, planned, actual });
         if (!success) {
             UI.showNotification('Could not add item (limit reached or storage error)', 'error');
             return;
@@ -184,6 +166,156 @@ const App = {
         UI.showNotification('Budget item added', 'success');
     },
 
+    initTransactionLedger() {
+        const form = document.getElementById('transactionForm');
+        const typeSelect = document.getElementById('transactionType');
+        const filtersRoot = document.getElementById('ledgerFilters');
+        const clearBtn = document.getElementById('ledgerClearFilters');
+        const list = document.getElementById('transactionsList');
+
+        this._ledgerFilterRefresh = debounce(() => {
+            UI.renderTransactionLedger();
+        }, 200);
+
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                this.handleTransactionSubmit(form);
+            });
+        }
+
+        if (typeSelect) {
+            typeSelect.addEventListener('change', () => {
+                UI.renderTransactionCategoryOptions();
+            });
+        }
+
+        if (filtersRoot) {
+            filtersRoot.addEventListener('input', (event) => {
+                const target = event.target;
+                if (target instanceof HTMLElement && target.matches('#ledgerSearch')) {
+                    this._ledgerFilterRefresh();
+                }
+            });
+            filtersRoot.addEventListener('change', (event) => {
+                const target = event.target;
+                if (target instanceof HTMLElement && target.matches('#ledgerFilterType, #ledgerSort')) {
+                    UI.renderTransactionLedger();
+                }
+            });
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                UI.clearLedgerFilters();
+                UI.renderTransactionLedger();
+                UI.showNotification('Ledger filters cleared', 'success');
+            });
+        }
+
+        if (list) {
+            list.addEventListener('click', (event) => {
+                const clickTarget = event.target instanceof Element ? event.target : null;
+                if (!clickTarget) return;
+                const deleteBtn = clickTarget.closest('.delete-btn');
+                if (!deleteBtn) return;
+                const id = deleteBtn.dataset.id;
+                if (id) this.handleDeleteTransaction(id);
+            });
+        }
+    },
+
+    getDefaultTransactionDateForSelectedPeriod() {
+        const month = Storage.getSelectedMonth();
+        const year = Storage.getSelectedYear();
+        const today = new Date();
+        if (today.getMonth() === month && today.getFullYear() === year) {
+            return getTodayDate();
+        }
+        return formatDateForInput(new Date(year, month, 1));
+    },
+
+    syncTransactionForm(forceDate = false) {
+        const dateInput = document.getElementById('transactionDate');
+        if (dateInput && (forceDate || !isValidDateInput(dateInput.value))) {
+            dateInput.value = this.getDefaultTransactionDateForSelectedPeriod();
+        }
+        UI.renderTransactionCategoryOptions();
+    },
+
+    handleTransactionSubmit(form) {
+        const categorySelect = document.getElementById('transactionCategory');
+        const selectedOption = categorySelect && categorySelect.options[categorySelect.selectedIndex];
+
+        if (!categorySelect || categorySelect.disabled || !categorySelect.value || !selectedOption) {
+            UI.showNotification('Create a matching budget category first', 'error');
+            return;
+        }
+
+        const payload = {
+            amount: form.transactionAmount.value,
+            type: form.transactionType.value,
+            budgetCategoryId: categorySelect.value,
+            budgetType: selectedOption.dataset.categoryType,
+            category: selectedOption.dataset.categoryName || selectedOption.textContent,
+            description: form.transactionDescription.value,
+            date: form.transactionDate.value
+        };
+
+        if (!isValidDateInput(payload.date)) {
+            UI.showNotification('Choose a valid transaction date', 'error');
+            return;
+        }
+
+        const selectedMonth = Storage.getSelectedMonth();
+        const selectedYear = Storage.getSelectedYear();
+        const txnDate = new Date(payload.date);
+        if (txnDate.getMonth() !== selectedMonth || txnDate.getFullYear() !== selectedYear) {
+            UI.showNotification('Transaction date must be within the selected month and year', 'error');
+            return;
+        }
+
+        const result = TransactionManager.add(payload);
+        if (!result.success) {
+            const errorMap = {
+                invalid_amount: 'Enter a valid transaction amount',
+                invalid_type: 'Choose a valid transaction type',
+                storage_error: 'Could not save transaction'
+            };
+            UI.showNotification(errorMap[result.error] || 'Could not save transaction', 'error');
+            return;
+        }
+
+        form.transactionAmount.value = '';
+        form.transactionDescription.value = '';
+        if (!isValidDateInput(form.transactionDate.value)) {
+            form.transactionDate.value = this.getDefaultTransactionDateForSelectedPeriod();
+        }
+
+        this.refreshAll();
+        UI.showNotification('Transaction added', 'success');
+        UI.focusInput('transactionAmount');
+    },
+
+    handleDeleteTransaction(id) {
+        const txn = TransactionManager.getById(id);
+        if (!txn) {
+            UI.showNotification('Transaction not found', 'error');
+            return;
+        }
+
+        const message = 'Delete ' + txn.description + ' (' + formatCurrency(txn.amount) + ')?';
+        if (!confirm(message)) return;
+
+        const result = TransactionManager.delete(id);
+        if (result.success) {
+            this.refreshAll();
+            UI.showNotification('Transaction deleted', 'success');
+        } else {
+            UI.showNotification('Could not delete transaction', 'error');
+        }
+    },
+
     initDataTools() {
         const exportBtn = document.getElementById('exportDataBtn');
         const importBtn = document.getElementById('importDataBtn');
@@ -191,45 +323,41 @@ const App = {
         const copyPrevBtn = document.getElementById('copyPrevMonthBtn');
         const resetBtn = document.getElementById('resetCurrentMonthBtn');
         const clearAllBtn = document.getElementById('clearAllDataBtn');
+        const encryptToggle = document.getElementById('backupEncryptToggle');
+        const passphraseInput = document.getElementById('backupPassphrase');
 
         if (exportBtn) {
-            exportBtn.addEventListener('click', () => {
-                this.handleExportData();
+            exportBtn.addEventListener('click', async () => {
+                await this.handleExportData();
             });
         }
 
         if (importBtn && importInput) {
-            importBtn.addEventListener('click', () => {
-                importInput.click();
-            });
+            importBtn.addEventListener('click', () => importInput.click());
         }
 
         if (importInput) {
             importInput.addEventListener('change', async (event) => {
                 const file = event.target.files && event.target.files[0];
                 if (!file) return;
-
                 await this.handleImportData(file);
                 importInput.value = '';
             });
         }
 
-        if (copyPrevBtn) {
-            copyPrevBtn.addEventListener('click', () => {
-                this.handleCopyPreviousMonth();
-            });
-        }
+        if (copyPrevBtn) copyPrevBtn.addEventListener('click', () => this.handleCopyPreviousMonth());
+        if (resetBtn) resetBtn.addEventListener('click', () => this.handleResetCurrentMonth());
+        if (clearAllBtn) clearAllBtn.addEventListener('click', () => this.handleClearAllData());
 
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                this.handleResetCurrentMonth();
-            });
-        }
-
-        if (clearAllBtn) {
-            clearAllBtn.addEventListener('click', () => {
-                this.handleClearAllData();
-            });
+        if (encryptToggle && passphraseInput) {
+            const syncState = () => {
+                passphraseInput.disabled = !encryptToggle.checked;
+                if (!encryptToggle.checked) {
+                    passphraseInput.value = '';
+                }
+            };
+            encryptToggle.addEventListener('change', syncState);
+            syncState();
         }
     },
 
@@ -265,7 +393,7 @@ const App = {
     },
 
     refreshAll(options = {}) {
-        const { forceNotesSync = false } = options;
+        const { forceNotesSync = false, forceTransactionDateSync = false } = options;
         const month = Storage.getSelectedMonth();
         const year = Storage.getSelectedYear();
         const periodKey = Storage.getPeriodKey(month, year);
@@ -274,6 +402,8 @@ const App = {
         this.renderYearSelectorOptions();
         UI.updateMonthSelector(month, year);
         UI.renderBudgetSection();
+        this.syncTransactionForm(forceTransactionDateSync || this._activePeriodKey !== periodKey);
+        UI.renderTransactionLedger();
 
         if (forceNotesSync || this._activePeriodKey !== periodKey) {
             UI.syncMonthNotes(true);
@@ -286,17 +416,13 @@ const App = {
 
     getPreviousPeriod(month, year) {
         const previous = new Date(year, month - 1, 1);
-        return {
-            month: previous.getMonth(),
-            year: previous.getFullYear()
-        };
+        return { month: previous.getMonth(), year: previous.getFullYear() };
     },
 
     handleCopyPreviousMonth() {
         const month = Storage.getSelectedMonth();
         const year = Storage.getSelectedYear();
         const previous = this.getPreviousPeriod(month, year);
-
         const sourceKey = Storage.getPeriodKey(previous.month, previous.year);
         const targetKey = Storage.getPeriodKey(month, year);
 
@@ -320,13 +446,11 @@ const App = {
 
     handleResetCurrentMonth() {
         const periodKey = Storage.getPeriodKey();
-        if (!confirm('Reset all budget items and notes for ' + periodKey + '?')) {
-            return;
-        }
+        if (!confirm('Reset all budget items and notes for ' + periodKey + '?')) return;
 
         const success = Storage.resetBudgetPeriod();
         if (success) {
-            this.refreshAll({ forceNotesSync: true });
+            this.refreshAll({ forceNotesSync: true, forceTransactionDateSync: true });
             UI.showNotification('Current month reset', 'success');
         } else {
             UI.showNotification('Unable to reset current month', 'error');
@@ -334,38 +458,97 @@ const App = {
     },
 
     handleClearAllData() {
-        if (!confirm('Clear ALL saved finance data (all months, preferences, and backups in this browser)?')) {
-            return;
-        }
-        if (!confirm('This cannot be undone. Continue?')) {
-            return;
-        }
+        if (!confirm('Clear ALL saved finance data (all months, preferences, transactions, and backups in this browser)?')) return;
+        if (!confirm('This cannot be undone. Continue?')) return;
 
         Storage.clearAll();
-        this.refreshAll({ forceNotesSync: true });
+        this.refreshAll({ forceNotesSync: true, forceTransactionDateSync: true });
         UI.showNotification('All local data cleared', 'success');
     },
 
-    handleExportData() {
-        const json = Storage.exportData();
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        const stamp = new Date().toISOString().slice(0, 10);
+    isBackupEncryptionEnabled() {
+        const toggle = document.getElementById('backupEncryptToggle');
+        return !!(toggle && toggle.checked);
+    },
 
-        anchor.href = url;
-        anchor.download = 'finance-backup-' + stamp + '.json';
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        URL.revokeObjectURL(url);
+    getBackupPassphrase() {
+        const input = document.getElementById('backupPassphrase');
+        return input ? input.value : '';
+    },
 
-        UI.showNotification('Backup exported', 'success');
+    async buildExportPayload() {
+        const plainJson = Storage.exportData();
+
+        if (!this.isBackupEncryptionEnabled()) {
+            return {
+                filename: 'finance-backup-' + new Date().toISOString().slice(0, 10) + '.json',
+                contentType: 'application/json',
+                body: plainJson,
+                encrypted: false
+            };
+        }
+
+        const passphrase = this.getBackupPassphrase();
+        if (!passphrase) {
+            throw new Error('Enter a passphrase or turn off encryption');
+        }
+
+        const encryptedWrapper = await encryptBackupJson(plainJson, passphrase);
+        return {
+            filename: 'finance-backup-encrypted-' + new Date().toISOString().slice(0, 10) + '.json',
+            contentType: 'application/json',
+            body: JSON.stringify(encryptedWrapper, null, 2),
+            encrypted: true
+        };
+    },
+
+    async handleExportData() {
+        try {
+            const payload = await this.buildExportPayload();
+            const blob = new Blob([payload.body], { type: payload.contentType });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+
+            anchor.href = url;
+            anchor.download = payload.filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+
+            UI.showNotification(payload.encrypted ? 'Encrypted backup exported' : 'Backup exported', 'success');
+        } catch (error) {
+            console.error('Export failed:', error);
+            UI.showNotification(error.message || 'Failed to export backup', 'error');
+        }
+    },
+
+    async maybeDecryptImportedBackup(text) {
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch {
+            return { plaintextJson: text, encrypted: false };
+        }
+
+        if (!parsed || typeof parsed !== 'object' || !parsed.encryptedBackup) {
+            return { plaintextJson: text, encrypted: false };
+        }
+
+        let passphrase = this.getBackupPassphrase();
+        if (!passphrase) {
+            passphrase = prompt('This backup is encrypted. Enter the passphrase to import:') || '';
+        }
+        if (!passphrase) {
+            throw new Error('Passphrase is required to import this encrypted backup');
+        }
+
+        const plaintextJson = await decryptBackupJson(parsed, passphrase);
+        return { plaintextJson, encrypted: true };
     },
 
     async handleImportData(file) {
         if (!file) return;
-
         if (file.size > 5 * 1024 * 1024) {
             UI.showNotification('Backup file is too large (max 5MB)', 'error');
             return;
@@ -376,17 +559,18 @@ const App = {
 
         try {
             const text = await file.text();
-            const result = Storage.importData(text);
+            const { plaintextJson, encrypted } = await this.maybeDecryptImportedBackup(text);
+            const result = Storage.importData(plaintextJson);
 
             if (result.success) {
-                this.refreshAll({ forceNotesSync: true });
-                UI.showNotification(result.message, 'success');
+                this.refreshAll({ forceNotesSync: true, forceTransactionDateSync: true });
+                UI.showNotification((encrypted ? 'Encrypted backup imported. ' : '') + result.message, 'success');
             } else {
                 UI.showNotification(result.message, 'error');
             }
         } catch (error) {
             console.error('Import failed:', error);
-            UI.showNotification('Failed to read the selected file', 'error');
+            UI.showNotification(error.message || 'Failed to read the selected file', 'error');
         }
     }
 };
@@ -396,3 +580,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.App = App;
+

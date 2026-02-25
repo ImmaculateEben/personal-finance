@@ -1,4 +1,4 @@
-// UI Rendering Module (Budget Dashboard)
+﻿// UI Rendering Module (Budget + Transaction Ledger)
 
 const UI = {
     _budgetEventsBound: false,
@@ -16,13 +16,8 @@ const UI = {
         toast.className = 'toast ' + (type === 'error' ? 'error' : 'success');
         toast.classList.add('show');
 
-        if (this._toastTimer) {
-            clearTimeout(this._toastTimer);
-        }
-
-        this._toastTimer = setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
+        if (this._toastTimer) clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
     },
 
     toggleModal(modalId, show) {
@@ -47,15 +42,23 @@ const UI = {
         const yearSelector = document.getElementById('yearSelector');
         const title = document.getElementById('budgetDashboardTitle');
 
-        if (monthSelector) {
-            monthSelector.value = String(monthIndex);
+        if (monthSelector) monthSelector.value = String(monthIndex);
+        if (yearSelector && year !== undefined) yearSelector.value = String(year);
+        if (title) title.textContent = monthNames[monthIndex] + ' ' + year + ' Budget Dashboard';
+    },
+
+    _getBudgetMetrics(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        if (window.TransactionManager && typeof TransactionManager.getEffectiveBudgetMetrics === 'function') {
+            return TransactionManager.getEffectiveBudgetMetrics(month, year);
         }
-        if (yearSelector && year !== undefined) {
-            yearSelector.value = String(year);
+        return Storage.getBudgetMetrics(month, year);
+    },
+
+    _getBudgetCategories(month = Storage.getSelectedMonth(), year = Storage.getSelectedYear()) {
+        if (window.TransactionManager && typeof TransactionManager.getEffectiveBudgetCategories === 'function') {
+            return TransactionManager.getEffectiveBudgetCategories(month, year);
         }
-        if (title) {
-            title.textContent = monthNames[monthIndex] + ' ' + year + ' Budget Dashboard';
-        }
+        return Storage.getBudgetCategories(month, year);
     },
 
     renderBudgetSection() {
@@ -77,8 +80,7 @@ const UI = {
     },
 
     _getSectionContainer(containerId) {
-        const container = document.getElementById(containerId);
-        return container || null;
+        return document.getElementById(containerId) || null;
     },
 
     _createSpreadsheetRowHtml(cat) {
@@ -86,7 +88,12 @@ const UI = {
         const name = escapeHtml(cat.name || '');
         const color = normalizeHexColor(cat.color, '#4299e1');
         const planned = toNumber(cat.planned, { fallback: 0, min: 0 });
-        const actual = toNumber(cat.actual, { fallback: 0, min: 0 });
+        const manualActual = toNumber(cat.manualActual !== undefined ? cat.manualActual : cat.actual, { fallback: 0, min: 0 });
+        const transactionActual = toNumber(cat.transactionActual, { fallback: 0, min: 0 });
+        const hasTxnActual = transactionActual > 0;
+        const actualTitle = hasTxnActual
+            ? 'Manual actual: ' + formatCurrency(manualActual) + ' | Ledger actual (used in charts/summary): ' + formatCurrency(transactionActual)
+            : 'Manual actual used in charts and summary';
 
         const sharedName = `
             <div class="col-name">
@@ -122,13 +129,14 @@ const UI = {
         }
 
         return `
-            <div class="spreadsheet-row" data-category-id="${id}" data-type="${escapeHtml(cat.type)}">
+            <div class="spreadsheet-row ${hasTxnActual ? 'ledger-driven-row' : ''}" data-category-id="${id}" data-type="${escapeHtml(cat.type)}">
                 ${sharedName}
                 <div class="col-planned">
                     <input type="number" class="planned-input budget-editable" value="${planned}" data-category-id="${id}" data-field="planned" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
                 </div>
                 <div class="col-actual">
-                    <input type="number" class="actual-input budget-editable" value="${actual}" data-category-id="${id}" data-field="actual" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                    <input type="number" class="actual-input budget-editable ${hasTxnActual ? 'ledger-actual-overridden' : ''}" value="${manualActual}" data-category-id="${id}" data-field="actual" min="0" step="0.01" inputmode="decimal" placeholder="0.00" title="${escapeHtml(actualTitle)}">
+                    ${hasTxnActual ? `<span class="ledger-actual-pill" title="Ledger actual used in summary/charts">Tx ${escapeHtml(formatCurrency(transactionActual))}</span>` : ''}
                 </div>
                 ${actionButtons}
             </div>
@@ -139,12 +147,12 @@ const UI = {
         const container = this._getSectionContainer(containerId);
         if (!container) return;
 
-        const categories = Storage.getBudgetCategoriesByType(type);
+        const categories = this._getBudgetCategories().filter(cat => cat.type === type);
         container.innerHTML = categories.map(cat => this._createSpreadsheetRowHtml(cat)).join('');
     },
 
     renderBudgetSummary() {
-        const metrics = Storage.getBudgetMetrics();
+        const metrics = this._getBudgetMetrics();
 
         const elIncome = document.getElementById('summaryTotalIncome');
         const elExpenses = document.getElementById('summaryTotalExpenses');
@@ -159,35 +167,26 @@ const UI = {
         if (elBills) elBills.textContent = formatCurrency(metrics.fixedPlanned);
         if (elSavings) elSavings.textContent = formatCurrency(metrics.savingsPlanned);
         if (elDebt) elDebt.textContent = formatCurrency(metrics.debtPlanned);
-
-        if (elRemaining) {
-            elRemaining.textContent = formatCurrency(Math.abs(metrics.plannedBalance));
-        }
+        if (elRemaining) elRemaining.textContent = formatCurrency(Math.abs(metrics.plannedBalance));
 
         if (remainingRow) {
             remainingRow.className = 'summary-row remaining ' + (metrics.plannedBalance >= 0 ? 'positive' : 'negative');
             const label = remainingRow.querySelector('.summary-label');
-            if (label) {
-                label.textContent = metrics.plannedBalance >= 0 ? 'Left' : 'Over';
-            }
+            if (label) label.textContent = metrics.plannedBalance >= 0 ? 'Left' : 'Over';
         }
     },
 
     updateHeaderSummary() {
-        const metrics = Storage.getBudgetMetrics();
+        const metrics = this._getBudgetMetrics();
 
-        const mappings = [
+        [
             ['headerExpenses', metrics.variableActual],
             ['headerBills', metrics.fixedActual],
             ['headerSavings', metrics.savingsActual],
             ['headerDebt', metrics.debtActual]
-        ];
-
-        mappings.forEach(([id, value]) => {
+        ].forEach(([id, value]) => {
             const el = document.getElementById(id);
-            if (el) {
-                el.textContent = formatCurrency(value);
-            }
+            if (el) el.textContent = formatCurrency(value);
         });
 
         ['headerBalance', 'headerBalanceDesktop'].forEach(id => {
@@ -203,26 +202,22 @@ const UI = {
         const year = Storage.getSelectedYear();
         const periodKey = Storage.getPeriodKey(month, year);
         const budget = Storage.getBudget(month, year);
-        const metrics = Storage.getBudgetMetrics(month, year);
+        const metrics = this._getBudgetMetrics(month, year);
 
         const periodBadge = document.getElementById('currentPeriodBadge');
         const itemBadge = document.getElementById('itemCountBadge');
         const updatedText = document.getElementById('lastUpdatedText');
 
-        if (periodBadge) {
-            periodBadge.textContent = periodKey;
-        }
-        if (itemBadge) {
-            itemBadge.textContent = String(metrics.categoriesCount) + ' items';
-        }
+        if (periodBadge) periodBadge.textContent = periodKey;
+        if (itemBadge) itemBadge.textContent = String(metrics.categoriesCount) + ' items';
         if (updatedText) {
             updatedText.textContent = budget.updatedAt ? ('Last saved: ' + new Date(budget.updatedAt).toLocaleString()) : 'Last saved: not yet';
         }
     },
 
     renderInsights() {
-        const metrics = Storage.getBudgetMetrics();
-        const categories = Storage.getBudgetCategories();
+        const metrics = this._getBudgetMetrics();
+        const categories = this._getBudgetCategories();
         const nonIncome = categories.filter(c => c.type !== 'income');
 
         let largestPlanned = null;
@@ -230,14 +225,9 @@ const UI = {
 
         nonIncome.forEach(cat => {
             const planned = toNumber(cat.planned, { fallback: 0, min: 0 });
-            const actual = toNumber(cat.actual, { fallback: 0, min: 0 });
-
-            if (!largestPlanned || planned > largestPlanned.amount) {
-                largestPlanned = { name: cat.name, amount: planned };
-            }
-            if (!largestActual || actual > largestActual.amount) {
-                largestActual = { name: cat.name, amount: actual };
-            }
+            const actual = toNumber(cat.actualEffective !== undefined ? cat.actualEffective : cat.actual, { fallback: 0, min: 0 });
+            if (!largestPlanned || planned > largestPlanned.amount) largestPlanned = { name: cat.name, amount: planned };
+            if (!largestActual || actual > largestActual.amount) largestActual = { name: cat.name, amount: actual };
         });
 
         const healthValue = metrics.actualBalance >= 0 ? 'On track' : 'Over budget';
@@ -250,19 +240,13 @@ const UI = {
         this._setText('insightLargestActual', largestActual && largestActual.amount > 0 ? (largestActual.name + ' (' + formatCurrency(largestActual.amount) + ')') : 'No actuals yet');
 
         const healthEl = document.getElementById('insightBudgetHealth');
-        if (healthEl) {
-            healthEl.dataset.tone = healthTone;
-        }
+        if (healthEl) healthEl.dataset.tone = healthTone;
     },
 
     syncMonthNotes(force = false) {
         const notesInput = document.getElementById('monthNotes');
         if (!notesInput) return;
-
-        if (!force && document.activeElement === notesInput) {
-            return;
-        }
-
+        if (!force && document.activeElement === notesInput) return;
         notesInput.value = Storage.getBudgetNotes();
         this.updateNotesCounter();
     },
@@ -271,7 +255,6 @@ const UI = {
         const notesInput = document.getElementById('monthNotes');
         const counter = document.getElementById('notesCharCount');
         if (!notesInput || !counter) return;
-
         counter.textContent = String(notesInput.value.length) + '/1000';
     },
 
@@ -295,7 +278,6 @@ const UI = {
                 const categoryId = target.dataset.categoryId;
                 Storage.updateBudgetCategory(categoryId, 'color', target.value);
                 this.refreshBudgetSection();
-                return;
             }
         });
 
@@ -303,7 +285,6 @@ const UI = {
             const target = event.target;
             if (!(target instanceof HTMLElement)) return;
             if (!target.matches('.budget-editable')) return;
-
             if (event.key === 'Enter') {
                 event.preventDefault();
                 target.blur();
@@ -319,10 +300,10 @@ const UI = {
                 const categoryId = deleteBtn.dataset.categoryId;
                 const category = Storage.getBudgetCategories().find(c => c.id === categoryId);
                 const label = category ? category.name : 'this item';
-
                 if (confirm('Delete "' + label + '" from this month?')) {
                     if (Storage.deleteBudgetCategory(categoryId)) {
                         this.refreshBudgetSection();
+                        this.renderTransactionCategoryOptions();
                         this.showNotification('Item deleted', 'success');
                     } else {
                         this.showNotification('Unable to delete item', 'error');
@@ -345,6 +326,7 @@ const UI = {
 
                 if (Storage.addBudgetCategory(copy)) {
                     this.refreshBudgetSection();
+                    this.renderTransactionCategoryOptions();
                     this.showNotification('Item duplicated', 'success');
                 } else {
                     this.showNotification('Unable to duplicate item', 'error');
@@ -378,19 +360,155 @@ const UI = {
         const success = Storage.updateBudgetCategory(categoryId, field, value);
         if (success) {
             this.refreshBudgetSection();
+            this.renderTransactionCategoryOptions();
         } else {
             this.showNotification('Unable to save changes', 'error');
         }
     },
 
-    _setText(id, value) {
-        const el = document.getElementById(id);
-        if (el) {
-            el.textContent = String(value ?? '');
+    // ---------------- Transaction Ledger ----------------
+
+    syncTransactionFormDefaults() {
+        const dateInput = document.getElementById('transactionDate');
+        if (dateInput) {
+            const current = dateInput.value;
+            if (!isValidDateInput(current)) {
+                dateInput.value = getTodayDate();
+            }
+        }
+        this.renderTransactionCategoryOptions();
+    },
+
+    renderTransactionCategoryOptions() {
+        const select = document.getElementById('transactionCategory');
+        const typeSelect = document.getElementById('transactionType');
+        if (!select || !typeSelect || !window.TransactionManager) return;
+
+        const desiredType = typeSelect.value === 'income' ? 'income' : 'expense';
+        const currentValue = select.value;
+        const options = TransactionManager.getLedgerCategoryOptions(desiredType);
+
+        select.innerHTML = '';
+
+        if (options.length === 0) {
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = desiredType === 'income' ? 'No income categories in this month' : 'No spending categories in this month';
+            placeholder.selected = true;
+            select.appendChild(placeholder);
+            select.disabled = true;
+            return;
+        }
+
+        select.disabled = false;
+        options.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name + ' (' + capitalize(cat.type) + ')';
+            option.dataset.categoryName = cat.name;
+            option.dataset.categoryType = cat.type;
+            if (cat.id === currentValue) option.selected = true;
+            select.appendChild(option);
+        });
+
+        if (!select.value && options[0]) {
+            select.value = options[0].id;
         }
     },
 
-    // Compatibility helpers retained for older code paths
+    getLedgerFiltersFromUI() {
+        const type = document.getElementById('ledgerFilterType');
+        const search = document.getElementById('ledgerSearch');
+        const sort = document.getElementById('ledgerSort');
+
+        return {
+            type: type ? type.value : 'all',
+            search: search ? search.value : '',
+            sort: sort ? sort.value : 'newest'
+        };
+    },
+
+    renderTransactionLedger() {
+        if (!window.TransactionManager) return;
+        const filters = this.getLedgerFiltersFromUI();
+        const { transactions, summary } = TransactionManager.getPeriodSummary(Storage.getSelectedMonth(), Storage.getSelectedYear(), filters);
+        this.renderLedgerSummary(summary);
+        this.renderTransactions(transactions);
+        this.renderTransactionCategoryOptions();
+    },
+
+    renderLedgerSummary(summary) {
+        this._setText('ledgerIncomeTotal', formatCurrency(summary.totalIncome));
+        this._setText('ledgerExpenseTotal', formatCurrency(summary.totalExpenses));
+        this._setText('ledgerBalanceTotal', formatCurrency(summary.balance));
+        this._setText('ledgerTransactionCount', String(summary.transactionCount));
+
+        const balanceEl = document.getElementById('ledgerBalanceTotal');
+        if (balanceEl) {
+            balanceEl.style.color = summary.balance >= 0 ? '#22c55e' : '#ef4444';
+        }
+    },
+
+    renderTransactions(transactions) {
+        const list = document.getElementById('transactionsList');
+        const emptyState = document.getElementById('emptyState');
+        if (!list) return;
+
+        const itemsHtml = transactions.map(t => this.createTransactionElement(t)).join('');
+        list.innerHTML = itemsHtml;
+
+        if (emptyState) {
+            emptyState.hidden = transactions.length !== 0;
+        }
+    },
+
+    createTransactionElement(transaction) {
+        const amountPrefix = transaction.type === 'income' ? '+' : '-';
+        const budgetTypeLabel = transaction.budgetType ? capitalize(transaction.budgetType) : (transaction.type === 'income' ? 'Income' : 'Expense');
+
+        return `
+            <div class="transaction-item" data-id="${escapeHtml(transaction.id)}">
+                <div class="transaction-type-indicator ${escapeHtml(transaction.type)}"></div>
+                <div class="transaction-info">
+                    <span class="transaction-description">${escapeHtml(transaction.description)}</span>
+                    <span class="transaction-category">${escapeHtml(transaction.category)} • ${escapeHtml(budgetTypeLabel)}</span>
+                </div>
+                <span class="transaction-date">${escapeHtml(formatDate(transaction.date))}</span>
+                <span class="transaction-amount ${escapeHtml(transaction.type)}">${escapeHtml(amountPrefix + formatCurrency(transaction.amount))}</span>
+                <button type="button" class="delete-btn" data-id="${escapeHtml(transaction.id)}" aria-label="Delete transaction">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                </button>
+            </div>
+        `;
+    },
+
+    removeTransactionElement(id) {
+        const safeId = String(id || '').replace(/"/g, '');
+        const item = document.querySelector('.transaction-item[data-id="' + safeId + '"]');
+        if (item) {
+            item.classList.add('removing');
+            setTimeout(() => item.remove(), 200);
+        }
+    },
+
+    clearLedgerFilters() {
+        const type = document.getElementById('ledgerFilterType');
+        const search = document.getElementById('ledgerSearch');
+        const sort = document.getElementById('ledgerSort');
+        if (type) type.value = 'all';
+        if (search) search.value = '';
+        if (sort) sort.value = 'newest';
+    },
+
+    // ---------------- Generic Helpers ----------------
+
+    _setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(value ?? '');
+    },
+
     updateCharts() {
         ChartManager.updateCharts();
     },
@@ -399,8 +517,6 @@ const UI = {
         this.renderBudgetSummary();
     },
 
-    renderTransactions() {},
-    removeTransactionElement() {},
     renderCategoryDatalist() {},
     renderCategoriesList() {},
     scrollToTop() {},
@@ -414,15 +530,11 @@ const UI = {
         if (!button) return;
         if (loading) {
             button.disabled = true;
-            if (!button.dataset.originalText) {
-                button.dataset.originalText = button.innerHTML;
-            }
+            if (!button.dataset.originalText) button.dataset.originalText = button.innerHTML;
             button.innerHTML = 'Working...';
         } else {
             button.disabled = false;
-            if (button.dataset.originalText) {
-                button.innerHTML = button.dataset.originalText;
-            }
+            if (button.dataset.originalText) button.innerHTML = button.dataset.originalText;
         }
     },
 
@@ -430,3 +542,4 @@ const UI = {
 };
 
 window.UI = UI;
+

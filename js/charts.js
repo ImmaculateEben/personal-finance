@@ -1,4 +1,4 @@
-// Chart.js Integration Module
+﻿// Chart.js Integration Module
 
 const ChartManager = {
     donutChart: null,
@@ -48,6 +48,13 @@ const ChartManager = {
         };
     },
 
+    _getBudgetMetrics() {
+        if (window.TransactionManager && typeof TransactionManager.getEffectiveBudgetMetrics === 'function') {
+            return TransactionManager.getEffectiveBudgetMetrics();
+        }
+        return Storage.getBudgetMetrics();
+    },
+
     _upsertChart(instanceName, ctx, config) {
         if (!ctx || typeof Chart === 'undefined') {
             return;
@@ -71,7 +78,7 @@ const ChartManager = {
         const canvas = document.getElementById('donutChart');
         if (!canvas) return;
 
-        const metrics = Storage.getBudgetMetrics();
+        const metrics = this._getBudgetMetrics();
         const income = metrics.incomePlanned;
         const spent = metrics.actualOutflow;
         const remaining = Math.max(0, roundCurrency(income - spent));
@@ -117,7 +124,7 @@ const ChartManager = {
         const canvas = document.getElementById('allocationChart');
         if (!canvas) return;
 
-        const metrics = Storage.getBudgetMetrics();
+        const metrics = this._getBudgetMetrics();
         const values = [metrics.variableActual, metrics.fixedActual, metrics.savingsActual, metrics.debtActual];
         const hasData = values.some(v => v > 0);
 
@@ -164,7 +171,7 @@ const ChartManager = {
         const canvas = document.getElementById('plannedVsActualChart');
         if (!canvas) return;
 
-        const metrics = Storage.getBudgetMetrics();
+        const metrics = this._getBudgetMetrics();
         const planned = [metrics.variablePlanned, metrics.fixedPlanned, metrics.savingsPlanned, metrics.debtPlanned];
         const actual = [metrics.variableActual, metrics.fixedActual, metrics.savingsActual, metrics.debtActual];
 
@@ -258,3 +265,4 @@ const ChartManager = {
 };
 
 window.ChartManager = ChartManager;
+
