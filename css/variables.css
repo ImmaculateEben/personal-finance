@@ -1,79 +1,70 @@
-/* CSS Variables for Theming */
+/* Design Tokens */
 :root {
-    /* Primary Brand Color */
-    --primary-color: #ec4899;
-    --primary-light: #f472b6;
-    --primary-dark: #db2777;
-    
-    /* Light Theme (default) */
-    --bg-primary: #fdf4ff;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #faf5ff;
-    
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --add-button-hover: #22c55e;
-    
-    --border-color: #e9d5ff;
-    --border-light: #faf5ff;
-    
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-    
-    /* Semantic Colors */
-    --color-income: #22c55e;
-    --color-income-bg: #dcfce7;
-    --color-expense: #ef4444;
-    --color-expense-bg: #fee2e2;
-    --color-balance: #8b5cf6;
-    --color-balance-bg: #ede9fe;
-    
-    /* Accent Colors - Soft Pinks and Purples */
-    --accent-primary: #ec4899;
-    --accent-primary-hover: #db2777;
-    --accent-secondary: #8b5cf6;
-    --accent-tertiary: #f472b6;
-    
-    /* Chart Colors - Soft Palette */
-    --chart-1: #ec4899;  /* Pink */
-    --chart-2: #8b5cf6;  /* Purple */
-    --chart-3: #22c55e;  /* Green */
-    --chart-4: #f59e0b;  /* Amber */
-    --chart-5: #06b6d4;  /* Cyan */
-    --chart-6: #f97316;  /* Orange */
-    --chart-7: #3b82f6;  /* Blue */
-    --chart-8: #84cc16;  /* Lime */
-    
-    /* Budget Category Colors */
-    --variable-color: #ec4899;
-    --variable-bg: #fce7f3;
-    --fixed-color: #ef4444;
-    --fixed-bg: #fee2e2;
-    --savings-color: #22c55e;
-    --savings-bg: #dcfce7;
-    --debt-color: #8b5cf6;
-    --debt-bg: #ede9fe;
-    --income-color: #22c55e;
-    --income-bg: #dcfce7;
-    
-    /* Form Colors */
-    --input-bg: #ffffff;
-    --input-border: #e9d5ff;
-    --input-focus: #ec4899;
-    
-    /* Card Colors */
-    --card-bg: #ffffff;
-    --card-border: #e9d5ff;
-    
-    /* Transition */
-    --transition-fast: 150ms ease;
-    --transition-normal: 250ms ease;
-    --transition-slow: 350ms ease;
-}
+    /* Brand */
+    --primary-color: #0b8f6a;
+    --primary-light: #1fb78c;
+    --primary-dark: #06644c;
+    --secondary-color: #1d4ed8;
 
-/* Chart Colors Array */
-:root {
-    --chart-colors: #ec4899, #8b5cf6, #22c55e, #f59e0b, #06b6d4, #f97316, #3b82f6, #84cc16;
+    /* Surfaces */
+    --bg-primary: #ecf2f8;
+    --bg-secondary: #f7fbff;
+    --bg-tertiary: #e5edf6;
+    --bg-elevated: #ffffff;
+    --bg-ink: #081223;
+
+    /* Text */
+    --text-primary: #0f172a;
+    --text-secondary: #415066;
+    --text-muted: #6b7a90;
+
+    /* Borders / shadows */
+    --border: #d4deea;
+    --border-color: #d4deea;
+    --border-strong: #b4c3d6;
+    --shadow-xs: 0 1px 2px rgba(8, 18, 35, 0.04);
+    --shadow-sm: 0 10px 24px rgba(8, 18, 35, 0.06);
+    --shadow-md: 0 18px 40px rgba(8, 18, 35, 0.08);
+    --shadow-lg: 0 28px 70px rgba(8, 18, 35, 0.14);
+
+    /* Semantic */
+    --success-color: #0f8a62;
+    --danger-color: #c62828;
+    --warning-color: #c57a00;
+    --info-color: #1d4ed8;
+
+    /* Component aliases used by legacy CSS/JS */
+    --add-button-hover: #eafbf5;
+    --card-bg: var(--bg-elevated);
+    --card-border: var(--border-color);
+    --input-bg: #fbfdff;
+    --input-border: var(--border-color);
+    --input-focus: var(--primary-color);
+
+    /* Charts */
+    --chart-1: #0b8f6a;
+    --chart-2: #1d4ed8;
+    --chart-3: #0ea5e9;
+    --chart-4: #c57a00;
+    --chart-5: #dc2626;
+    --chart-6: #7c3aed;
+    --chart-7: #334155;
+    --chart-8: #14b8a6;
+
+    /* Category chips */
+    --variable-color: #1d4ed8;
+    --variable-bg: #eaf2ff;
+    --fixed-color: #dc2626;
+    --fixed-bg: #feeef0;
+    --savings-color: #0b8f6a;
+    --savings-bg: #e8fbf4;
+    --debt-color: #b45309;
+    --debt-bg: #fff5e6;
+    --income-color: #15803d;
+    --income-bg: #eaf8ee;
+
+    /* Motion */
+    --transition-fast: 120ms ease;
+    --transition-normal: 220ms ease;
+    --transition-slow: 360ms ease;
 }
