@@ -39,4 +39,19 @@ test.describe('Personal Finance Dashboard smoke', () => {
     await toggle.uncheck();
     await expect(input).toBeDisabled();
   });
+
+  test('theme preset selector updates and persists', async ({ page }) => {
+    await page.goto('/');
+
+    const themeSelect = page.locator('#uiThemePreset');
+    await expect(themeSelect).toHaveValue('corporate');
+    await expect(page.locator('html')).toHaveAttribute('data-ui-theme', 'corporate');
+
+    await themeSelect.selectOption('midnight');
+    await expect(page.locator('html')).toHaveAttribute('data-ui-theme', 'midnight');
+    await expect(themeSelect).toHaveValue('midnight');
+
+    const savedPrefs = await page.evaluate(() => JSON.parse(localStorage.getItem('finance_preferences') || '{}'));
+    expect(savedPrefs.uiThemePreset).toBe('midnight');
+  });
 });

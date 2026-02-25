@@ -10,6 +10,7 @@ const App = {
             UI.showNotification('Local storage is unavailable. Changes will not persist.', 'error');
         }
 
+        this.initThemePresetSelector();
         this.initCurrencySelector();
         this.initPeriodSelectors();
         this.initBudgetItemModal();
@@ -20,6 +21,37 @@ const App = {
 
         this.refreshAll({ forceNotesSync: true });
         console.log('Budget dashboard initialized');
+    },
+
+    initThemePresetSelector() {
+        const selector = document.getElementById('uiThemePreset');
+        const initialPreset = typeof Storage.getUIThemePreset === 'function' ? Storage.getUIThemePreset() : 'corporate';
+
+        this.applyUIThemePreset(initialPreset);
+
+        if (!selector) return;
+
+        selector.value = initialPreset;
+        selector.addEventListener('change', (event) => {
+            const requestedPreset = event.target && event.target.value ? String(event.target.value) : 'corporate';
+            Storage.setUIThemePreset(requestedPreset);
+            const appliedPreset = Storage.getUIThemePreset();
+            selector.value = appliedPreset;
+            this.applyUIThemePreset(appliedPreset);
+
+            const selectedLabel = selector.options[selector.selectedIndex] ? selector.options[selector.selectedIndex].textContent : 'Theme';
+            UI.showNotification('Interface theme changed to ' + selectedLabel, 'success');
+        });
+    },
+
+    applyUIThemePreset(preset) {
+        const safePreset = typeof Storage.getUIThemePreset === 'function'
+            ? (Storage.UI_THEME_PRESETS && Storage.UI_THEME_PRESETS.includes(preset) ? preset : Storage.getUIThemePreset())
+            : 'corporate';
+
+        if (document.documentElement) {
+            document.documentElement.setAttribute('data-ui-theme', safePreset);
+        }
     },
 
     initCurrencySelector() {

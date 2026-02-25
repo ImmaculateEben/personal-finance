@@ -93,6 +93,7 @@ test('importData normalizes invalid preferences and budget values', () => {
 
   const badBackup = {
     preferences: {
+      uiThemePreset: 'hacker-mode',
       currency: 'XXX',
       selectedMonth: 99,
       selectedYear: 3000
@@ -119,6 +120,7 @@ test('importData normalizes invalid preferences and budget values', () => {
   const result = Storage.importData(JSON.stringify(badBackup));
   assert.equal(result.success, true);
 
+  assert.equal(Storage.getUIThemePreset(), 'corporate');
   assert.equal(Storage.getCurrency(), 'USD');
   assert.equal(Storage.getSelectedMonth() >= 0 && Storage.getSelectedMonth() <= 11, true);
 
@@ -168,4 +170,15 @@ test('encrypted backup helpers round-trip and reject wrong passphrase', async ()
     context.decryptBackupJson(encrypted, 'wrong-passphrase'),
     /decrypt backup|passphrase/i
   );
+});
+
+test('ui theme preset preference persists and normalizes', () => {
+  const { Storage } = loadBrowserScripts();
+
+  assert.equal(Storage.getUIThemePreset(), 'corporate');
+  assert.equal(Storage.setUIThemePreset('midnight'), true);
+  assert.equal(Storage.getUIThemePreset(), 'midnight');
+
+  assert.equal(Storage.savePreferences({ uiThemePreset: 'invalid-preset' }), true);
+  assert.equal(Storage.getUIThemePreset(), 'corporate');
 });

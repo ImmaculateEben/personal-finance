@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" data-ui-theme="corporate">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +7,10 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';">
     <meta name="referrer" content="no-referrer">
     <title>Personal Finance Dashboard</title>
+    <script src="js/theme-bootstrap.js"></script>
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/interface-overrides.css">
     <link rel="stylesheet" href="css/animations.css">
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -24,6 +26,12 @@
                     <h1>Finance Dashboard</h1>
                 </div>
                 <div class="header-controls">
+                    <label for="uiThemePreset" class="visually-hidden">Select interface theme</label>
+                    <select id="uiThemePreset" class="currency-selector theme-selector" aria-label="Select interface theme">
+                        <option value="corporate">Corporate Clean</option>
+                        <option value="warm">Warm Studio</option>
+                        <option value="midnight">Midnight Console</option>
+                    </select>
                     <select id="currencySelector" class="currency-selector" aria-label="Select currency">
                         <!-- Options populated by JavaScript -->
                     </select>

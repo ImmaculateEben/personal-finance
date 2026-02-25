@@ -9,10 +9,12 @@ const Storage = {
     LEGACY_BUDGET_KEY: 'finance_budget',
     STORAGE_VERSION: 2,
     MAX_BUDGET_ITEMS_PER_PERIOD: 200,
+    UI_THEME_PRESETS: ['corporate', 'warm', 'midnight'],
 
     // Default preferences
     defaultPreferences: {
         theme: 'light',
+        uiThemePreset: 'corporate',
         currency: 'USD',
         selectedMonth: new Date().getMonth(),
         selectedYear: new Date().getFullYear()
@@ -149,6 +151,11 @@ const Storage = {
         const currentYear = new Date().getFullYear();
         if (!Number.isInteger(parsed)) return currentYear;
         return Math.min(currentYear + 25, Math.max(currentYear - 25, parsed));
+    },
+
+    _normalizeUiThemePreset(value) {
+        const candidate = sanitizeText(value, { maxLength: 24, fallback: this.defaultPreferences.uiThemePreset }).toLowerCase();
+        return this.UI_THEME_PRESETS.includes(candidate) ? candidate : this.defaultPreferences.uiThemePreset;
     },
 
     _normalizeCategoryName(value, fallback) {
@@ -628,6 +635,7 @@ const Storage = {
 
         return {
             theme: prefs.theme === 'dark' ? 'dark' : 'light',
+            uiThemePreset: this._normalizeUiThemePreset(prefs.uiThemePreset),
             currency: this._normalizeCurrency(prefs.currency),
             selectedMonth: this._normalizeMonth(prefs.selectedMonth),
             selectedYear: this._normalizeYear(prefs.selectedYear)
@@ -643,6 +651,7 @@ const Storage = {
 
         const normalized = {
             theme: merged.theme === 'dark' ? 'dark' : 'light',
+            uiThemePreset: this._normalizeUiThemePreset(merged.uiThemePreset),
             currency: this._normalizeCurrency(merged.currency),
             selectedMonth: this._normalizeMonth(merged.selectedMonth),
             selectedYear: this._normalizeYear(merged.selectedYear)
@@ -657,6 +666,14 @@ const Storage = {
 
     setTheme(theme) {
         return this.savePreferences({ theme: theme === 'dark' ? 'dark' : 'light' });
+    },
+
+    getUIThemePreset() {
+        return this.getPreferences().uiThemePreset;
+    },
+
+    setUIThemePreset(preset) {
+        return this.savePreferences({ uiThemePreset: this._normalizeUiThemePreset(preset) });
     },
 
     getCurrency() {
