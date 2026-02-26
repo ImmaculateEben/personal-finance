@@ -294,6 +294,17 @@ const UI = {
         root.addEventListener('click', (event) => {
             const clickTarget = event.target instanceof Element ? event.target : null;
             if (!clickTarget) return;
+            const row = clickTarget.closest('.spreadsheet-row');
+            if (row && window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+                const isAction = !!clickTarget.closest('.row-delete-btn, .row-add-btn');
+                const isInput = !!clickTarget.closest('input, button');
+                if (!isAction && isInput) {
+                    root.querySelectorAll('.spreadsheet-row[data-actions-open=\"true\"]').forEach(el => {
+                        if (el !== row) el.removeAttribute('data-actions-open');
+                    });
+                    row.setAttribute('data-actions-open', 'true');
+                }
+            }
 
             const deleteBtn = clickTarget.closest('.row-delete-btn');
             if (deleteBtn) {
@@ -338,6 +349,15 @@ const UI = {
             if (addBtn && window.App && typeof window.App.openBudgetItemModal === 'function') {
                 window.App.openBudgetItemModal(addBtn.dataset.type || 'variable');
             }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!(event.target instanceof Element)) return;
+            if (window.matchMedia && !window.matchMedia('(max-width: 767px)').matches) return;
+            if (event.target.closest('.financial-overview-section')) return;
+            root.querySelectorAll('.spreadsheet-row[data-actions-open=\"true\"]').forEach(el => {
+                el.removeAttribute('data-actions-open');
+            });
         });
 
         this._budgetEventsBound = true;

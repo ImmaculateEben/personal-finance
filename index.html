@@ -26,6 +26,9 @@
                     </svg>
                     <h1>Finance Dashboard</h1>
                 </div>
+                <button type="button" class="btn btn-secondary mobile-settings-trigger" id="openMobileSettingsBtn" aria-controls="workspaceToolsSection" aria-expanded="false">
+                    Settings
+                </button>
                 <div class="header-controls">
                     <label for="uiThemePreset" class="visually-hidden">Select interface theme</label>
                     <select id="uiThemePreset" class="currency-selector theme-selector" aria-label="Select interface theme">
@@ -277,9 +280,41 @@
 
                 <!-- Right Column: Charts & Transactions -->
                 <div class="right-column">
-                    <section class="tools-section">
-                        <div class="card tools-card">
-                            <h2 class="section-title">Workspace</h2>
+                    <section class="tools-section" id="workspaceToolsSection" aria-label="Workspace and settings tools">
+                        <div class="mobile-workspace-nav" role="tablist" aria-label="Mobile workspace panels">
+                            <button type="button" class="mobile-workspace-tab is-active" data-mobile-panel-target="tools" role="tab" aria-selected="true">Settings</button>
+                            <button type="button" class="mobile-workspace-tab" data-mobile-panel-target="notes" role="tab" aria-selected="false">Notes</button>
+                            <button type="button" class="mobile-workspace-tab" data-mobile-panel-target="insights" role="tab" aria-selected="false">Insights</button>
+                        </div>
+
+                        <div class="card tools-card is-mobile-panel-active" data-mobile-panel-id="tools">
+                            <h2 class="section-title">
+                                Workspace
+                                <button type="button" class="mobile-sheet-close" id="closeMobileSettingsBtn" aria-label="Close settings panel">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 6L6 18M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </h2>
+                            <div class="mobile-settings-preferences" aria-label="Mobile settings">
+                                <h3 class="mobile-settings-heading">Settings</h3>
+                                <div class="mobile-settings-grid">
+                                    <div class="mobile-setting-field">
+                                        <label for="mobileThemePreset">Interface mode</label>
+                                        <select id="mobileThemePreset" class="currency-selector theme-selector" aria-label="Select interface theme on mobile">
+                                            <option value="corporate">Corporate Clean</option>
+                                            <option value="warm">Warm Studio</option>
+                                            <option value="midnight">Midnight Console</option>
+                                        </select>
+                                    </div>
+                                    <div class="mobile-setting-field">
+                                        <label for="mobileCurrencySelector">Currency</label>
+                                        <select id="mobileCurrencySelector" class="currency-selector" aria-label="Select currency on mobile">
+                                            <!-- Options mirrored by JavaScript -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="workspace-meta">
                                 <span class="meta-pill" id="currentPeriodBadge">----</span>
                                 <span class="meta-pill" id="itemCountBadge">0 items</span>
@@ -305,7 +340,7 @@
                             <p class="workspace-note">Data stays in this browser. Imports are validated before saving.</p>
                         </div>
 
-                        <div class="card notes-card">
+                        <div class="card notes-card" data-mobile-panel-id="notes">
                             <h2 class="section-title">Month Notes</h2>
                             <label for="monthNotes" class="visually-hidden">Month notes</label>
                             <textarea id="monthNotes" class="notes-textarea" maxlength="1000" placeholder="Track reminders, bill due dates, goals, or what changed this month..."></textarea>
@@ -315,7 +350,7 @@
                             </div>
                         </div>
 
-                        <div class="card insights-card">
+                        <div class="card insights-card" data-mobile-panel-id="insights">
                             <h2 class="section-title">Insights</h2>
                             <div class="insights-list">
                                 <div class="insight-row"><span>Budget health</span><strong id="insightBudgetHealth">-</strong></div>

@@ -4,6 +4,8 @@ const App = {
     _notesSaveHandler: null,
     _ledgerFilterRefresh: null,
     _activePeriodKey: null,
+    _mobileSettingsOpen: false,
+    _activeMobileWorkspacePanel: 'tools',
 
     init() {
         if (!Storage.isAvailable()) {
@@ -16,6 +18,7 @@ const App = {
         this.initBudgetItemModal();
         this.initTransactionLedger();
         this.initDataTools();
+        this.initMobileSettingsSheet();
         this.initNotes();
         this.initGlobalEvents();
 
@@ -32,12 +35,14 @@ const App = {
         if (!selector) return;
 
         selector.value = initialPreset;
+        this.syncMobileThemePresetMirror();
         selector.addEventListener('change', (event) => {
             const requestedPreset = event.target && event.target.value ? String(event.target.value) : 'corporate';
             Storage.setUIThemePreset(requestedPreset);
             const appliedPreset = Storage.getUIThemePreset();
             selector.value = appliedPreset;
             this.applyUIThemePreset(appliedPreset);
+            this.syncMobileThemePresetMirror();
 
             const selectedLabel = selector.options[selector.selectedIndex] ? selector.options[selector.selectedIndex].textContent : 'Theme';
             UI.showNotification('Interface theme changed to ' + selectedLabel, 'success');
@@ -69,13 +74,70 @@ const App = {
             option.selected = currency.code === savedCurrency;
             selector.appendChild(option);
         });
+        this.syncMobileCurrencySelectorMirror();
 
         selector.addEventListener('change', (event) => {
             Storage.setCurrency(event.target.value);
+            this.syncMobileCurrencySelectorMirror();
             this.refreshAll();
             const info = Storage.getCurrencyInfo(event.target.value);
             UI.showNotification('Currency changed to ' + info.name, 'success');
         });
+    },
+
+    syncPreferenceSelectorsFromStorage() {
+        const themeSelector = document.getElementById('uiThemePreset');
+        const currencySelector = document.getElementById('currencySelector');
+
+        if (themeSelector && typeof Storage.getUIThemePreset === 'function') {
+            const preset = Storage.getUIThemePreset();
+            themeSelector.value = preset;
+            this.applyUIThemePreset(preset);
+        }
+
+        if (currencySelector) {
+            const code = Storage.getCurrency();
+            if (currencySelector.value !== code) {
+                currencySelector.value = code;
+            }
+        }
+
+        this.syncMobileThemePresetMirror();
+        this.syncMobileCurrencySelectorMirror();
+    },
+
+    syncMobileThemePresetMirror() {
+        const source = document.getElementById('uiThemePreset');
+        const target = document.getElementById('mobileThemePreset');
+        if (!source || !target) return;
+
+        target.innerHTML = source.innerHTML;
+        target.value = source.value;
+    },
+
+    syncMobileCurrencySelectorMirror() {
+        const source = document.getElementById('currencySelector');
+        const target = document.getElementById('mobileCurrencySelector');
+        if (!source || !target) return;
+
+        target.innerHTML = source.innerHTML;
+        target.value = source.value;
+        target.disabled = source.disabled;
+    },
+
+    isMobileViewport() {
+        return window.matchMedia ? window.matchMedia('(max-width: 767px)').matches : window.innerWidth < 768;
+    },
+
+    isMobileSettingsHashActive() {
+        const hash = (window.location.hash || '').toLowerCase();
+        return hash === '#settings' || hash === '#workspace';
+    },
+
+    clearMobileSettingsHash() {
+        if (!this.isMobileSettingsHashActive()) return;
+        const next = window.location.pathname + window.location.search;
+        window.history.replaceState(null, '', next);
     },
 
     initPeriodSelectors() {
@@ -393,6 +455,149 @@ const App = {
         }
     },
 
+    initMobileSettingsSheet() {
+        const openBtn = document.getElementById('openMobileSettingsBtn');
+        const closeBtn = document.getElementById('closeMobileSettingsBtn');
+        const toolsSection = document.getElementById('workspaceToolsSection');
+        const mobileTheme = document.getElementById('mobileThemePreset');
+        const mobileCurrency = document.getElementById('mobileCurrencySelector');
+        const themeSelector = document.getElementById('uiThemePreset');
+        const currencySelector = document.getElementById('currencySelector');
+        const panelTabs = toolsSection ? Array.from(toolsSection.querySelectorAll('[data-mobile-panel-target]')) : [];
+        const isMobile = this.isMobileViewport();
+
+        this.syncMobileThemePresetMirror();
+        this.syncMobileCurrencySelectorMirror();
+        if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
+        if (toolsSection) toolsSection.setAttribute('aria-hidden', isMobile ? 'true' : 'false');
+        this.setMobileWorkspacePanel(this._activeMobileWorkspacePanel);
+
+        if (openBtn) {
+            openBtn.addEventListener('click', () => this.openMobileSettingsSheet());
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.closeMobileSettingsSheet());
+        }
+
+        if (toolsSection) {
+            toolsSection.addEventListener('click', (event) => {
+                if (!this._mobileSettingsOpen) return;
+                if (event.target === toolsSection) {
+                    this.closeMobileSettingsSheet();
+                }
+            });
+        }
+
+        panelTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.mobilePanelTarget || 'tools';
+                this.setMobileWorkspacePanel(target);
+            });
+        });
+
+        if (mobileTheme && themeSelector) {
+            mobileTheme.addEventListener('change', () => {
+                if (themeSelector.value === mobileTheme.value) return;
+                themeSelector.value = mobileTheme.value;
+                themeSelector.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
+
+        if (mobileCurrency && currencySelector) {
+            mobileCurrency.addEventListener('change', () => {
+                if (currencySelector.value === mobileCurrency.value) return;
+                currencySelector.value = mobileCurrency.value;
+                currencySelector.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
+
+        this.syncMobileSettingsSheetFromHash();
+    },
+
+    openMobileSettingsSheet() {
+        this.setMobileWorkspacePanel('tools');
+        if (this.isMobileViewport() && !this.isMobileSettingsHashActive()) {
+            window.location.hash = 'settings';
+        }
+        this.setMobileSettingsSheetOpen(true);
+    },
+
+    closeMobileSettingsSheet() {
+        this.clearMobileSettingsHash();
+        this.setMobileSettingsSheetOpen(false);
+    },
+
+    setMobileWorkspacePanel(panel) {
+        const allowed = ['tools', 'notes', 'insights'];
+        const nextPanel = allowed.includes(panel) ? panel : 'tools';
+        const toolsSection = document.getElementById('workspaceToolsSection');
+        const isMobile = this.isMobileViewport();
+        if (!toolsSection) {
+            this._activeMobileWorkspacePanel = nextPanel;
+            return;
+        }
+
+        this._activeMobileWorkspacePanel = nextPanel;
+
+        toolsSection.querySelectorAll('[data-mobile-panel-target]').forEach((button) => {
+            const active = button.dataset.mobilePanelTarget === nextPanel;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+            button.setAttribute('tabindex', active ? '0' : '-1');
+        });
+
+        toolsSection.querySelectorAll('[data-mobile-panel-id]').forEach((panelEl) => {
+            const active = panelEl.dataset.mobilePanelId === nextPanel;
+            panelEl.classList.toggle('is-mobile-panel-active', active);
+            panelEl.setAttribute('aria-hidden', isMobile ? (active ? 'false' : 'true') : 'false');
+        });
+    },
+
+    syncMobileSettingsSheetFromHash() {
+        if (!this.isMobileViewport()) {
+            this.setMobileSettingsSheetOpen(false);
+            return;
+        }
+
+        if (this.isMobileSettingsHashActive()) {
+            this.setMobileSettingsSheetOpen(true);
+        } else if (this._mobileSettingsOpen) {
+            this.setMobileSettingsSheetOpen(false);
+        }
+    },
+
+    setMobileSettingsSheetOpen(open) {
+        const shouldOpen = Boolean(open);
+        const body = document.body;
+        const openBtn = document.getElementById('openMobileSettingsBtn');
+        const closeBtn = document.getElementById('closeMobileSettingsBtn');
+        const toolsSection = document.getElementById('workspaceToolsSection');
+        const isMobile = this.isMobileViewport();
+
+        if (!body || !toolsSection) return;
+        if (!isMobile && shouldOpen) return;
+
+        body.classList.toggle('mobile-settings-open', shouldOpen);
+        toolsSection.setAttribute('aria-hidden', isMobile ? (shouldOpen ? 'false' : 'true') : 'false');
+        if (openBtn) openBtn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        this._mobileSettingsOpen = shouldOpen;
+
+        if (shouldOpen) {
+            this.syncMobileThemePresetMirror();
+            this.syncMobileCurrencySelectorMirror();
+            this.setMobileWorkspacePanel(this._activeMobileWorkspacePanel);
+            setTimeout(() => {
+                if (closeBtn) closeBtn.focus();
+            }, 0);
+            return;
+        }
+
+        if (openBtn && window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+            openBtn.focus();
+        }
+    },
+
     initNotes() {
         const notesInput = document.getElementById('monthNotes');
         if (!notesInput) return;
@@ -412,6 +617,10 @@ const App = {
     initGlobalEvents() {
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
+                if (this._mobileSettingsOpen) {
+                    this.closeMobileSettingsSheet();
+                    return;
+                }
                 const modal = document.getElementById('budgetItemModal');
                 if (modal && modal.classList.contains('show')) {
                     UI.hideModal('budgetItemModal');
@@ -420,8 +629,16 @@ const App = {
         });
 
         window.addEventListener('resize', debounce(() => {
+            if (this._mobileSettingsOpen && window.innerWidth >= 768) {
+                this.clearMobileSettingsHash();
+                this.closeMobileSettingsSheet();
+            }
             ChartManager.updateBudgetCharts();
         }, 150));
+
+        window.addEventListener('hashchange', () => {
+            this.syncMobileSettingsSheetFromHash();
+        });
     },
 
     refreshAll(options = {}) {
@@ -431,6 +648,7 @@ const App = {
         const periodKey = Storage.getPeriodKey(month, year);
 
         Storage.ensureBudgetPeriod(month, year);
+        this.syncPreferenceSelectorsFromStorage();
         this.renderYearSelectorOptions();
         UI.updateMonthSelector(month, year);
         UI.renderBudgetSection();
