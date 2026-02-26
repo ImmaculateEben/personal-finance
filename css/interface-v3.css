@@ -1495,37 +1495,55 @@ textarea {
     }
 
     .spreadsheet-table {
-        overflow: visible !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        padding-bottom: 0.15rem;
     }
 
     .spreadsheet-header {
-        display: none !important;
+        display: grid !important;
         min-width: 0 !important;
+        position: static;
+        padding: 0.45rem 0.65rem 0.4rem !important;
+        font-size: 0.58rem !important;
+        letter-spacing: 0.08em;
+        gap: 0.35rem !important;
+        background: transparent !important;
+        border-bottom: 0 !important;
+        grid-template-columns: minmax(0, 1fr) 4.4rem 4.4rem !important;
+        align-items: center !important;
+    }
+
+    .spreadsheet-header > span:nth-last-child(-n+2) {
+        display: none !important;
+    }
+
+    .income .spreadsheet-header {
+        grid-template-columns: minmax(0, 1fr) 4.8rem !important;
     }
 
     .spreadsheet-body {
         max-height: none !important;
         overflow: visible !important;
         display: grid !important;
-        gap: 0.55rem !important;
-        padding: 0.7rem !important;
+        gap: 0.35rem !important;
+        padding: 0 0.65rem 0.65rem !important;
     }
 
     .spreadsheet-row {
         min-width: 0 !important;
         position: relative;
         margin: 0 !important;
-        padding: 0.75rem 0.7rem 0.7rem !important;
+        padding: 0.4rem 0.55rem !important;
         border: 1px solid var(--if-border-soft) !important;
-        border-radius: 14px !important;
+        border-radius: 10px !important;
         background: color-mix(in srgb, var(--if-card-bg) 80%, white) !important;
         border-bottom: 1px solid var(--if-border-soft) !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        grid-template-areas:
-            "name name"
-            "planned actual" !important;
-        gap: 0.5rem !important;
-        align-items: start !important;
+        grid-template-columns: minmax(0, 1fr) 4.4rem 4.4rem !important;
+        grid-template-areas: none !important;
+        gap: 0.35rem !important;
+        align-items: center !important;
+        min-height: 44px;
     }
 
     .spreadsheet-row:last-child {
@@ -1533,55 +1551,41 @@ textarea {
     }
 
     .spreadsheet-row.income-row {
-        grid-template-columns: 1fr !important;
-        grid-template-areas:
-            "name"
-            "planned" !important;
+        grid-template-columns: minmax(0, 1fr) 4.8rem !important;
     }
 
     .spreadsheet-row .col-name {
-        grid-area: name;
+        grid-area: auto !important;
         align-items: center;
-        padding-right: 3.5rem;
+        padding-right: 2.35rem;
     }
 
     .spreadsheet-row .col-planned,
     .spreadsheet-row .col-actual {
-        display: grid;
-        gap: 0.22rem;
-        align-content: start;
+        display: block;
+        grid-area: auto !important;
     }
-
-    .spreadsheet-row .col-planned { grid-area: planned; }
-    .spreadsheet-row .col-actual { grid-area: actual; }
 
     .spreadsheet-row .col-planned::before,
     .spreadsheet-row .col-actual::before {
-        display: block;
-        color: var(--if-dim);
-        font-size: 0.66rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        line-height: 1.1;
+        display: none !important;
+        content: none !important;
     }
 
-    .spreadsheet-row .col-planned::before { content: "Planned"; }
-    .spreadsheet-row .col-actual::before { content: "Actual"; }
-    .spreadsheet-row.income-row .col-planned::before { content: "Amount"; }
-
     .spreadsheet-row .category-color-input {
-        width: 18px !important;
-        height: 18px !important;
+        width: 15px !important;
+        height: 15px !important;
     }
 
     .spreadsheet-row .category-name,
     .spreadsheet-row .planned-input,
     .spreadsheet-row .actual-input {
-        min-height: 36px;
-        padding: 0.45rem 0.6rem !important;
+        min-height: 31px;
+        padding: 0.28rem 0.45rem !important;
         border: 1px solid var(--if-border) !important;
-        border-radius: 10px !important;
+        border-radius: 9px !important;
         background: var(--if-input-bg) !important;
+        font-size: 0.88rem;
     }
 
     .spreadsheet-row .category-name {
@@ -1594,8 +1598,7 @@ textarea {
     }
 
     .spreadsheet-row .ledger-actual-pill {
-        justify-self: start;
-        margin-top: 0.1rem;
+        display: none !important;
     }
 
     .spreadsheet-row .row-add-btn,
@@ -1609,10 +1612,10 @@ textarea {
         opacity: 1;
         visibility: visible;
         pointer-events: auto;
-        transform: none;
+        transform: translateY(-50%);
         position: absolute;
-        top: 0.7rem;
-        right: 0.7rem;
+        top: 50%;
+        right: 0.45rem;
         z-index: 2;
         background: var(--if-input-bg) !important;
     }
@@ -1692,8 +1695,33 @@ textarea {
         align-items: flex-start;
     }
 
+    .spreadsheet-header {
+        grid-template-columns: minmax(0, 1fr) 4rem 4rem !important;
+    }
+
+    .income .spreadsheet-header {
+        grid-template-columns: minmax(0, 1fr) 4.35rem !important;
+    }
+
+    .spreadsheet-row {
+        grid-template-columns: minmax(0, 1fr) 4rem 4rem !important;
+        padding: 0.36rem 0.5rem !important;
+        gap: 0.3rem !important;
+    }
+
+    .spreadsheet-row.income-row {
+        grid-template-columns: minmax(0, 1fr) 4.35rem !important;
+    }
+
+    .spreadsheet-row .category-name,
+    .spreadsheet-row .planned-input,
+    .spreadsheet-row .actual-input {
+        font-size: 0.84rem;
+        padding: 0.26rem 0.38rem !important;
+    }
+
     .spreadsheet-row .col-name {
-        padding-right: 2.6rem;
+        padding-right: 2.2rem;
     }
 }
 
