@@ -1584,3 +1584,107 @@ html[data-ui-theme='midnight'] ::selection {
     width: 100%;
   }
 }
+
+/* ===== Responsive Fit Pass (Laptop + Mid Desktop) ===== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .theme-selector {
+    width: auto !important;
+    min-width: 180px;
+  }
+
+  .header-controls {
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 1366px) {
+  .header-summary-fixed,
+  .desktop-only {
+    display: none !important;
+  }
+
+  .header-summary-items {
+    grid-template-columns: 1fr !important;
+  }
+
+  .header-summary-scroll {
+    grid-template-columns: repeat(4, minmax(120px, 1fr)) !important;
+    overflow-x: auto;
+    gap: .5rem !important;
+    padding-bottom: .1rem;
+  }
+
+  .header-summary-item {
+    min-width: 120px;
+  }
+}
+
+@media (min-width: 1180px) and (max-width: 1759px) {
+  .financial-overview-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .budget-summary-section {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+    position: static !important;
+    top: auto !important;
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1479px) {
+  .content-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(500px, .92fr) !important;
+  }
+
+  .overview-charts {
+    grid-template-columns: 1fr !important;
+  }
+
+  .comparison-charts {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (min-width: 1480px) and (max-width: 1759px) {
+  .content-grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(560px, .95fr) !important;
+  }
+
+  .right-column {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-areas:
+      'tools tools'
+      'overview compare'
+      'ledger ledger' !important;
+    gap: 1rem !important;
+    align-content: start;
+  }
+
+  .tools-section {
+    grid-area: tools !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .tools-card {
+    grid-column: 1 / -1 !important;
+  }
+
+  .overview-charts {
+    grid-area: overview !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .comparison-charts {
+    grid-area: compare !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .ledger-section {
+    grid-area: ledger !important;
+    align-self: start;
+  }
+}
