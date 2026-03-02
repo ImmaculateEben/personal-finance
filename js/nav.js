@@ -4,7 +4,7 @@
  * Runs after app.js has initialised.
  */
 
-;(function () {
+; (function () {
     'use strict';
 
     /* ── Helpers ──────────────────────────────────────────── */
@@ -14,8 +14,8 @@
     /* ══════════════════════════════════════════
        1.  TAB / PANEL SWITCHING
     ══════════════════════════════════════════ */
-    const panels      = $$('.tab-panel');
-    const navItems    = $$('.nav-item[data-panel]');
+    const panels = $$('.tab-panel');
+    const navItems = $$('.nav-item[data-panel]');
     const bottomItems = $$('.bottom-nav-item[data-panel]');
 
     function switchPanel(targetPanel) {
@@ -51,7 +51,7 @@
         }
 
         // Remember active panel
-        try { sessionStorage.setItem('financeActivePanel', targetPanel); } catch (_) {}
+        try { sessionStorage.setItem('financeActivePanel', targetPanel); } catch (_) { }
 
         // Close mobile sidebar if open
         closeMobileSidebar();
@@ -75,14 +75,14 @@
     try {
         const saved = sessionStorage.getItem('financeActivePanel');
         if (saved) switchPanel(saved);
-    } catch (_) {}
+    } catch (_) { }
 
     /* ══════════════════════════════════════════
        2.  MOBILE SIDEBAR TOGGLE
     ══════════════════════════════════════════ */
     const sidebarToggleBtn = $('sidebarToggleBtn');
-    const sidebar          = $('appSidebar');
-    const overlay          = $('sidebarOverlay');
+    const sidebar = $('appSidebar');
+    const overlay = $('sidebarOverlay');
 
     function openMobileSidebar() {
         if (!sidebar) return;
@@ -116,58 +116,98 @@
        3.  DARK / LIGHT MODE TOGGLE
     ══════════════════════════════════════════ */
     const darkToggle = $('darkModeToggle');
-    const darkIcon   = $('darkModeIcon');
+    const darkIcon = $('darkModeIcon');
 
     const MOON_PATH = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-    const SUN_PATH  = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    const SUN_PATH = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
 
     let isLightMode = false;
 
+    // All CSS custom properties set for dark mode (baseline)
+    const DARK_TOKENS = {
+        '--bg-base': '#080d1a',
+        '--bg-primary': '#080d1a',
+        '--bg-secondary': '#0d1426',
+        '--bg-tertiary': '#111827',
+        '--bg-elevated': '#161e32',
+        '--bg-glass': 'rgba(255,255,255,0.04)',
+        '--bg-glass-hover': 'rgba(255,255,255,0.07)',
+        '--bg-card': 'rgba(22,30,50,0.8)',
+        '--text-primary': '#e8edf5',
+        '--text-secondary': '#94a3b8',
+        '--text-muted': '#64748b',
+        '--border': 'rgba(255,255,255,0.08)',
+        '--border-color': 'rgba(255,255,255,0.08)',
+        '--border-strong': 'rgba(255,255,255,0.16)',
+        '--glass-border': 'rgba(255,255,255,0.10)',
+        '--card-bg': '#161e32',
+        '--input-bg': 'rgba(255,255,255,0.05)',
+        '--input-border': 'rgba(255,255,255,0.08)',
+        '--ui-ink': '#e8edf5',
+        '--ui-sub': '#94a3b8',
+        '--ui-dim': '#64748b',
+        '--ui-paper': '#161e32',
+        '--ui-paper-2': 'rgba(255,255,255,0.05)',
+        '--ui-line': 'rgba(255,255,255,0.08)',
+        '--ui-line-soft': 'rgba(255,255,255,0.05)',
+    };
+
+    // Light mode overrides
+    const LIGHT_TOKENS = {
+        '--bg-base': '#f1f5f9',
+        '--bg-primary': '#f1f5f9',
+        '--bg-secondary': '#e8eef5',
+        '--bg-tertiary': '#dde5ef',
+        '--bg-elevated': '#ffffff',
+        '--bg-glass': 'rgba(255,255,255,0.75)',
+        '--bg-glass-hover': 'rgba(255,255,255,0.95)',
+        '--bg-card': '#ffffff',
+        '--text-primary': '#0f172a',
+        '--text-secondary': '#475569',
+        '--text-muted': '#94a3b8',
+        '--border': 'rgba(15,23,42,0.08)',
+        '--border-color': 'rgba(15,23,42,0.08)',
+        '--border-strong': 'rgba(15,23,42,0.14)',
+        '--glass-border': 'rgba(15,23,42,0.10)',
+        '--card-bg': '#ffffff',
+        '--input-bg': 'rgba(255,255,255,0.9)',
+        '--input-border': 'rgba(15,23,42,0.12)',
+        '--ui-ink': '#0f172a',
+        '--ui-sub': '#475569',
+        '--ui-dim': '#94a3b8',
+        '--ui-paper': '#ffffff',
+        '--ui-paper-2': 'rgba(15,23,42,0.04)',
+        '--ui-line': 'rgba(15,23,42,0.08)',
+        '--ui-line-soft': 'rgba(15,23,42,0.05)',
+    };
+
     function applyLightMode(light) {
         isLightMode = light;
-        document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark');
+        const tokens = light ? LIGHT_TOKENS : DARK_TOKENS;
+        const html = document.documentElement;
 
-        if (darkIcon) {
-            darkIcon.innerHTML = light ? MOON_PATH : SUN_PATH;
-        }
+        // Apply all tokens
+        Object.entries(tokens).forEach(([prop, val]) => html.style.setProperty(prop, val));
+
+        // data-theme attribute (used by CSS selectors)
+        html.setAttribute('data-theme', light ? 'light' : 'dark');
+
+        // Update toggle icon and label
+        if (darkIcon) darkIcon.innerHTML = light ? MOON_PATH : SUN_PATH;
         if (darkToggle) {
-            darkToggle.setAttribute('title', light ? 'Switch to dark mode' : 'Switch to light mode');
-            darkToggle.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
+            const label = light ? 'Switch to dark mode' : 'Switch to light mode';
+            darkToggle.setAttribute('title', label);
+            darkToggle.setAttribute('aria-label', label);
         }
 
-        if (light) {
-            document.documentElement.style.setProperty('--bg-base', '#f1f5f9');
-            document.documentElement.style.setProperty('--bg-primary', '#f1f5f9');
-            document.documentElement.style.setProperty('--bg-secondary', '#e8eef5');
-            document.documentElement.style.setProperty('--bg-tertiary', '#dde5ef');
-            document.documentElement.style.setProperty('--bg-elevated', '#ffffff');
-            document.documentElement.style.setProperty('--bg-glass', 'rgba(255,255,255,0.7)');
-            document.documentElement.style.setProperty('--bg-glass-hover', 'rgba(255,255,255,0.9)');
-            document.documentElement.style.setProperty('--text-primary', '#0f172a');
-            document.documentElement.style.setProperty('--text-secondary', '#475569');
-            document.documentElement.style.setProperty('--text-muted', '#94a3b8');
-            document.documentElement.style.setProperty('--border', 'rgba(0,0,0,0.08)');
-            document.documentElement.style.setProperty('--border-color', 'rgba(0,0,0,0.08)');
-            document.documentElement.style.setProperty('--border-strong', 'rgba(0,0,0,0.14)');
-            document.documentElement.style.setProperty('--glass-border', 'rgba(0,0,0,0.10)');
-        } else {
-            // Remove inline overrides to restore dark variables
-            const lightProps = [
-                '--bg-base','--bg-primary','--bg-secondary','--bg-tertiary','--bg-elevated',
-                '--bg-glass','--bg-glass-hover','--text-primary','--text-secondary','--text-muted',
-                '--border','--border-color','--border-strong','--glass-border'
-            ];
-            lightProps.forEach(p => document.documentElement.style.removeProperty(p));
-        }
-
-        try { localStorage.setItem('financeOSLightMode', light ? '1' : '0'); } catch (_) {}
+        // Persist
+        try { localStorage.setItem('financeOSLightMode', light ? '1' : '0'); } catch (_) { }
     }
 
-    // Restore
+    // Restore persisted preference
     try {
         const stored = localStorage.getItem('financeOSLightMode');
-        if (stored === '1') applyLightMode(true);
-        else applyLightMode(false);
+        applyLightMode(stored === '1');
     } catch (_) { applyLightMode(false); }
 
     darkToggle && darkToggle.addEventListener('click', () => applyLightMode(!isLightMode));
@@ -218,7 +258,7 @@
     function updateHealthRing() {
         if (!healthRing) return;
 
-        const incomeEl   = $('summaryTotalIncome');
+        const incomeEl = $('summaryTotalIncome');
         const remainingEl = $('summaryRemaining');
         if (!incomeEl || !remainingEl) return;
 
@@ -227,7 +267,7 @@
             return parseFloat(raw) || 0;
         };
 
-        const income    = parseVal(incomeEl);
+        const income = parseVal(incomeEl);
         const remaining = parseVal(remainingEl);
 
         let pct = income > 0 ? Math.min(Math.max(remaining / income, 0), 1) : 0;
@@ -236,7 +276,7 @@
 
         // Colour: red < 20%, amber < 50%, teal otherwise
         let colour = 'var(--success-color)';
-        if (pct < 0.2)      colour = 'var(--danger-color)';
+        if (pct < 0.2) colour = 'var(--danger-color)';
         else if (pct < 0.5) colour = 'var(--warning-color)';
         healthRing.style.stroke = colour;
     }
