@@ -38,7 +38,7 @@
 
 /* Spreadsheet header + row backgrounds */
 .spreadsheet-header {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--ui-paper-2, rgba(255, 255, 255, 0.02));
     border-bottom-color: var(--ui-line-soft, var(--border));
 }
 
