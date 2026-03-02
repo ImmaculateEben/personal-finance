@@ -1,546 +1,1059 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light" data-ui-theme="corporate">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Personal finance budget dashboard with monthly planning, tracking, and local backup tools.">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';">
-    <meta name="referrer" content="no-referrer">
-    <title>Personal Finance Dashboard</title>
-    <script src="js/theme-bootstrap.js"></script>
+    <meta name="description" content="FinanceOS – A beautiful, private personal finance dashboard. Plan budgets, track spending, and visualize your finances. 100% local, zero cloud.">
+    <title>FinanceOS – Personal Finance Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/interface-overrides.css">
     <link rel="stylesheet" href="css/animations.css">
-    <link rel="stylesheet" href="css/interface-v3.css">
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ── Reset ─────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── Scrollbar ─────────────── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+
+        /* ── Noise overlay ─────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        /* ── Utility ───────────────── */
+        .container {
+            max-width: 1160px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        .gradient-text {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .glass {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* ── Navbar ────────────────── */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1rem 0;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .navbar.scrolled {
+            background: rgba(8, 13, 26, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+        .navbar-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .navbar-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        .navbar-logo-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .navbar-logo-icon svg { width: 18px; height: 18px; stroke: white; }
+        .navbar-logo-name {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .navbar-actions { display: flex; align-items: center; gap: 0.75rem; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            border: none;
+            white-space: nowrap;
+        }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+        }
+        .btn-ghost:hover {
+            background: var(--bg-glass);
+            border-color: var(--border);
+            color: var(--text-primary);
+        }
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 20px rgba(0, 201, 167, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 30px rgba(0, 201, 167, 0.45);
+        }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-outline {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid rgba(0, 201, 167, 0.35);
+        }
+        .btn-outline:hover {
+            background: rgba(0, 201, 167, 0.08);
+            border-color: var(--primary-color);
+        }
+        .btn-lg { padding: 0.875rem 2rem; font-size: 1rem; border-radius: 12px; }
+
+        /* ── Hero Section ──────────── */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 100px;
+            overflow: hidden;
+        }
+
+        /* Gradient background */
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 40%, rgba(0, 201, 167, 0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 80% at 80% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 50% at 50% 100%, rgba(56, 189, 248, 0.06) 0%, transparent 60%);
+        }
+
+        /* Animated orbs */
+        .hero-orbs { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+        }
+        .orb-1 {
+            width: 500px; height: 500px;
+            background: rgba(0, 201, 167, 0.08);
+            top: -100px; left: -100px;
+        }
+        .orb-2 {
+            width: 400px; height: 400px;
+            background: rgba(124, 58, 237, 0.08);
+            top: 100px; right: -80px;
+        }
+        .orb-3 {
+            width: 300px; height: 300px;
+            background: rgba(56, 189, 248, 0.06);
+            bottom: -50px; left: 40%;
+        }
+
+        /* Grid lines */
+        .hero-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 80%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 4rem;
+            width: 100%;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 1rem;
+            border-radius: 999px;
+            background: rgba(0, 201, 167, 0.1);
+            border: 1px solid rgba(0, 201, 167, 0.25);
+            color: var(--primary-color);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            animation: fadeIn 0.5s ease both;
+        }
+        .hero-badge-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            box-shadow: 0 0 6px var(--primary-color);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .hero-headline {
+            font-size: clamp(2.5rem, 5vw, 3.75rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.25rem;
+            animation: fadeUp 0.6s 0.1s both;
+        }
+
+        .hero-sub {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            max-width: 520px;
+            margin-bottom: 2rem;
+            animation: fadeUp 0.6s 0.2s both;
+        }
+
+        .hero-cta-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            animation: fadeUp 0.6s 0.3s both;
+        }
+
+        .hero-trust {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            animation: fadeUp 0.6s 0.4s both;
+        }
+        .hero-trust svg { width: 14px; height: 14px; stroke: var(--success-color); flex-shrink: 0; }
+        .trust-divider { width: 1px; height: 14px; background: var(--border); margin: 0 0.25rem; }
+
+        /* Hero Visual – Dashboard Mockup */
+        .hero-visual {
+            position: relative;
+            animation: fadeUp 0.7s 0.3s both;
+        }
+
+        .dashboard-mockup {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            box-shadow:
+                0 40px 100px rgba(0,0,0,0.6),
+                0 0 0 1px rgba(255,255,255,0.05),
+                inset 0 1px 0 rgba(255,255,255,0.08);
+            background: var(--bg-elevated);
+        }
+        .mockup-topbar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid var(--border);
+        }
+        .mockup-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .mockup-dot:nth-child(1) { background: #ff5f57; }
+        .mockup-dot:nth-child(2) { background: #febc2e; }
+        .mockup-dot:nth-child(3) { background: #28c840; }
+        .mockup-bar {
+            flex: 1;
+            height: 22px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.06);
+            margin: 0 0.5rem;
+        }
+        .mockup-body { padding: 1rem; }
+        .mockup-kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .mockup-kpi {
+            padding: 0.75rem;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+        }
+        .mockup-kpi-label {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.3rem;
+        }
+        .mockup-kpi-value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .mockup-kpi-value.green { color: var(--success-color); }
+        .mockup-kpi-value.red   { color: var(--danger-color); }
+        .mockup-kpi-value.blue  { color: var(--info-color); }
+        .mockup-kpi-value.amber { color: var(--warning-color); }
+
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 0.5rem;
+        }
+        .mockup-table {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .mockup-th {
+            display: grid;
+            grid-template-columns: 1fr 70px 70px;
+            gap: 0.25rem;
+            padding: 0.4rem 0.7rem;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border);
+        }
+        .mockup-th span {
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+        }
+        .mockup-row {
+            display: grid;
+            grid-template-columns: 1fr 70px 70px;
+            gap: 0.25rem;
+            padding: 0.35rem 0.7rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            align-items: center;
+        }
+        .mockup-row:last-child { border-bottom: none; }
+        .mockup-row-left { display: flex; align-items: center; gap: 0.35rem; }
+        .mockup-dot-sm {
+            width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+        }
+        .mockup-row-name { font-size: 0.65rem; color: var(--text-secondary); }
+        .mockup-row-val {
+            font-size: 0.65rem;
+            font-family: 'IBM Plex Mono', monospace;
+            text-align: right;
+            color: var(--text-primary);
+        }
+        .mockup-progress {
+            height: 2px;
+            border-radius: 999px;
+            background: var(--border);
+            margin-top: 0.15rem;
+            grid-column: 1 / -1;
+        }
+        .mockup-progress-fill {
+            height: 100%;
+            border-radius: 999px;
+        }
+
+        .mockup-chart {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            padding: 0.7rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .mockup-chart-title {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .mockup-donut-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+        .mockup-donut {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--chart-1) 0deg 140deg,
+                var(--chart-2) 140deg 230deg,
+                var(--chart-4) 230deg 290deg,
+                var(--chart-5) 290deg 360deg
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(0,201,167,0.2);
+        }
+        .mockup-donut-inner {
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+        }
+
+        /* ── Features Section ─────── */
+        .section {
+            padding: 6rem 0;
+            position: relative;
+        }
+        .section-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.875rem;
+            border-radius: 999px;
+            background: rgba(0, 201, 167, 0.08);
+            border: 1px solid rgba(0, 201, 167, 0.18);
+            color: var(--primary-color);
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 1rem;
+        }
+        .section-title {
+            font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+        .section-sub {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 560px;
+            line-height: 1.7;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3.5rem;
+        }
+        .feature-card {
+            padding: 1.75rem;
+            border-radius: var(--radius-xl);
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--accent-gradient);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            border-radius: inherit;
+        }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 201, 167, 0.25);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,201,167,0.1);
+        }
+        .feature-card:hover::before { opacity: 0.04; }
+        .feature-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+            position: relative;
+        }
+        .feature-icon svg { width: 22px; height: 22px; position: relative; z-index: 1; }
+        .feature-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .feature-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Feature icon colors */
+        .fi-teal .feature-icon { background: rgba(0, 201, 167, 0.12); }
+        .fi-teal .feature-icon svg { stroke: var(--primary-color); }
+        .fi-violet .feature-icon { background: rgba(124, 58, 237, 0.12); }
+        .fi-violet .feature-icon svg { stroke: #a78bfa; }
+        .fi-blue .feature-icon { background: rgba(56, 189, 248, 0.12); }
+        .fi-blue .feature-icon svg { stroke: var(--info-color); }
+        .fi-amber .feature-icon { background: rgba(245, 158, 11, 0.12); }
+        .fi-amber .feature-icon svg { stroke: var(--warning-color); }
+        .fi-pink .feature-icon { background: rgba(244, 63, 94, 0.12); }
+        .fi-pink .feature-icon svg { stroke: var(--danger-color); }
+        .fi-green .feature-icon { background: rgba(16, 217, 160, 0.12); }
+        .fi-green .feature-icon svg { stroke: var(--success-color); }
+
+        /* ── How It Works ──────────── */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3.5rem;
+            position: relative;
+        }
+        .steps-grid::before {
+            content: '';
+            position: absolute;
+            top: 28px;
+            left: calc(16.6% + 28px);
+            right: calc(16.6% + 28px);
+            height: 1px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            opacity: 0.3;
+        }
+        .step-card {
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+        .step-number {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+            font-weight: 800;
+            color: white;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 8px 24px rgba(0, 201, 167, 0.3);
+        }
+        .step-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .step-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ── Stats Section ─────────── */
+        .stats-section {
+            padding: 5rem 0;
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            align-items: center;
+        }
+        .stat-item { text-align: center; }
+        .stat-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1;
+            margin-bottom: 0.375rem;
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ── Privacy Section ───────── */
+        .privacy-banner {
+            margin-top: 4rem;
+            padding: 2.5rem;
+            border-radius: var(--radius-xl);
+            background: rgba(0, 201, 167, 0.05);
+            border: 1px solid rgba(0, 201, 167, 0.15);
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+        }
+        .privacy-icon {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            background: rgba(0, 201, 167, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .privacy-icon svg { width: 24px; height: 24px; stroke: var(--primary-color); }
+        .privacy-banner h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.375rem; }
+        .privacy-banner p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.65; }
+
+        /* ── CTA Section ───────────── */
+        .cta-section {
+            padding: 7rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0, 201, 167, 0.08) 0%, transparent 70%);
+        }
+        .cta-section .container { position: relative; z-index: 1; }
+        .cta-section h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 1rem;
+        }
+        .cta-section p {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+        }
+        .cta-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* ── Footer ────────────────── */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem 0;
+        }
+        .footer-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .footer-logo { font-size: 1rem; font-weight: 700; }
+        .footer-copy {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+        .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+        .footer-links a {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .footer-links a:hover { color: var(--primary-color); }
+
+        /* ── Responsive ────────────── */
+        @media (max-width: 1024px) {
+            .hero-content { grid-template-columns: 1fr; gap: 3rem; }
+            .hero { min-height: auto; padding: 120px 0 80px; }
+            .dashboard-mockup { max-width: 580px; margin: 0 auto; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+        }
+
+        @media (max-width: 768px) {
+            .section { padding: 4rem 0; }
+            .steps-grid { grid-template-columns: 1fr; }
+            .steps-grid::before { display: none; }
+            .features-grid { grid-template-columns: 1fr; }
+            .privacy-banner { flex-direction: column; }
+            .footer-inner { flex-direction: column; text-align: center; }
+            .navbar-actions .btn-ghost { display: none; }
+            .hero-visual { display: none; }
+            .hero-content { grid-template-columns: 1fr; }
+            .hero { min-height: auto; padding: 100px 0 60px; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .mockup-kpi-row { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Original Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="logo">
-                    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                    <h1>Finance Dashboard</h1>
-                </div>
-                <button type="button" class="btn btn-secondary mobile-settings-trigger" id="openMobileSettingsBtn" aria-controls="workspaceToolsSection" aria-expanded="false">
-                    Settings
-                </button>
-                <div class="header-controls">
-                    <label for="uiThemePreset" class="visually-hidden">Select interface theme</label>
-                    <select id="uiThemePreset" class="currency-selector theme-selector" aria-label="Select interface theme">
-                        <option value="corporate">Corporate Clean</option>
-                        <option value="warm">Warm Studio</option>
-                        <option value="midnight">Midnight Console</option>
-                    </select>
-                    <select id="currencySelector" class="currency-selector" aria-label="Select currency">
-                        <!-- Options populated by JavaScript -->
-                    </select>
-                </div>
-            </div>
-        </header>
 
-        <!-- Budget Dashboard Header Row -->
-        <div class="budget-header-row">
-            <div class="month-center-wrapper">
-                <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-                <select id="monthSelector" class="month-selector" aria-label="Select month">
-                    <option value="0">January</option>
-                    <option value="1">February</option>
-                    <option value="2">March</option>
-                    <option value="3">April</option>
-                    <option value="4">May</option>
-                    <option value="5">June</option>
-                    <option value="6">July</option>
-                    <option value="7">August</option>
-                    <option value="8">September</option>
-                    <option value="9">October</option>
-                    <option value="10">November</option>
-                    <option value="11">December</option>
-                </select>
-                <select id="yearSelector" class="month-selector year-selector" aria-label="Select year">
-                    <!-- Options populated by JavaScript -->
-                </select>
-                <div class="header-summary-item balance mobile-balance">
-                    <span class="header-summary-label">Balance</span>
-                    <span class="header-summary-value" id="headerBalance">$0.00</span>
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar" role="navigation" aria-label="Main navigation">
+        <div class="container">
+            <div class="navbar-inner">
+                <a href="#hero" class="navbar-logo" aria-label="FinanceOS home">
+                    <div class="navbar-logo-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <span class="navbar-logo-name gradient-text">FinanceOS</span>
+                </a>
+                <div class="navbar-actions">
+                    <a href="#features" class="btn btn-ghost">Features</a>
+                    <a href="#how-it-works" class="btn btn-ghost">How it works</a>
+                    <a href="dashboard.html" class="btn btn-primary" id="navCta">
+                        Open Dashboard
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M3.75 3.75v1.5h6.44L3.22 12.22l1.06 1.06 6.97-6.97v6.44h1.5V3.75z"/></svg>
+                    </a>
                 </div>
-                <h1 class="budget-dashboard-title" id="budgetDashboardTitle">May Budget Dashboard</h1>
             </div>
-            <div class="header-summary-items">
-                <div class="header-summary-scroll">
-                    <div class="header-summary-item expenses">
-                        <span class="header-summary-label">Expenses</span>
-                        <span class="header-summary-value" id="headerExpenses">$0.00</span>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero" id="hero" aria-labelledby="hero-heading">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="hero-orbs" aria-hidden="true">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+        <div class="hero-grid" aria-hidden="true"></div>
+
+        <div class="container">
+            <div class="hero-content">
+                <!-- Left: Text -->
+                <div class="hero-text">
+                    <div class="hero-badge" aria-label="New version available">
+                        <span class="hero-badge-dot" aria-hidden="true"></span>
+                        100% Local · Zero Cloud · Open Source
                     </div>
-                    <div class="header-summary-item bills">
-                        <span class="header-summary-label">Bills</span>
-                        <span class="header-summary-value" id="headerBills">$0.00</span>
+                    <h1 class="hero-headline" id="hero-heading">
+                        Your money,<br>
+                        <span class="gradient-text">finally under control.</span>
+                    </h1>
+                    <p class="hero-sub">
+                        A beautiful personal finance dashboard that lives entirely in your browser. Plan budgets, track every transaction, and visualize your spending — private by design.
+                    </p>
+                    <div class="hero-cta-row">
+                        <a href="dashboard.html" class="btn btn-primary btn-lg" id="heroCta">
+                            Start Budgeting Free
+                            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M3.75 3.75v1.5h6.44L3.22 12.22l1.06 1.06 6.97-6.97v6.44h1.5V3.75z"/></svg>
+                        </a>
+                        <a href="#how-it-works" class="btn btn-outline btn-lg">See how it works</a>
                     </div>
-                    <div class="header-summary-item savings">
-                        <span class="header-summary-label">Savings</span>
-                        <span class="header-summary-value" id="headerSavings">$0.00</span>
-                    </div>
-                    <div class="header-summary-item debt">
-                        <span class="header-summary-label">Debt</span>
-                        <span class="header-summary-value" id="headerDebt">$0.00</span>
+                    <div class="hero-trust" aria-label="Trust indicators">
+                        <svg viewBox="0 0 16 16" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4L6.5 11 3 7.5"/></svg>
+                        No signup required
+                        <div class="trust-divider" aria-hidden="true"></div>
+                        <svg viewBox="0 0 16 16" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4L6.5 11 3 7.5"/></svg>
+                        AES-GCM encrypted backups
+                        <div class="trust-divider" aria-hidden="true"></div>
+                        <svg viewBox="0 0 16 16" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4L6.5 11 3 7.5"/></svg>
+                        Works offline
                     </div>
                 </div>
-                <div class="header-summary-fixed desktop-only">
-                    <div class="header-summary-item balance">
-                        <span class="header-summary-label">Balance</span>
-                        <span class="header-summary-value" id="headerBalanceDesktop">$0.00</span>
+
+                <!-- Right: Dashboard Mockup -->
+                <div class="hero-visual" aria-hidden="true">
+                    <div class="dashboard-mockup float">
+                        <div class="mockup-topbar">
+                            <div class="mockup-dot"></div>
+                            <div class="mockup-dot"></div>
+                            <div class="mockup-dot"></div>
+                            <div class="mockup-bar"></div>
+                        </div>
+                        <div class="mockup-body">
+                            <div class="mockup-kpi-row">
+                                <div class="mockup-kpi">
+                                    <div class="mockup-kpi-label">Income</div>
+                                    <div class="mockup-kpi-value green">$6,400</div>
+                                </div>
+                                <div class="mockup-kpi">
+                                    <div class="mockup-kpi-label">Expenses</div>
+                                    <div class="mockup-kpi-value red">$2,150</div>
+                                </div>
+                                <div class="mockup-kpi">
+                                    <div class="mockup-kpi-label">Savings</div>
+                                    <div class="mockup-kpi-value blue">$1,200</div>
+                                </div>
+                                <div class="mockup-kpi">
+                                    <div class="mockup-kpi-label">Balance</div>
+                                    <div class="mockup-kpi-value green">$3,050</div>
+                                </div>
+                            </div>
+                            <div class="mockup-grid">
+                                <div class="mockup-table">
+                                    <div class="mockup-th">
+                                        <span>Category</span>
+                                        <span>Planned</span>
+                                        <span>Actual</span>
+                                    </div>
+                                    <div class="mockup-row">
+                                        <div class="mockup-row-left">
+                                            <div class="mockup-dot-sm" style="background:#10d9a0"></div>
+                                            <span class="mockup-row-name">Groceries</span>
+                                        </div>
+                                        <span class="mockup-row-val">$400</span>
+                                        <span class="mockup-row-val">$382</span>
+                                        <div class="mockup-progress"><div class="mockup-progress-fill" style="width:95%;background:#10d9a0"></div></div>
+                                    </div>
+                                    <div class="mockup-row">
+                                        <div class="mockup-row-left">
+                                            <div class="mockup-dot-sm" style="background:#38bdf8"></div>
+                                            <span class="mockup-row-name">Transport</span>
+                                        </div>
+                                        <span class="mockup-row-val">$200</span>
+                                        <span class="mockup-row-val">$145</span>
+                                        <div class="mockup-progress"><div class="mockup-progress-fill" style="width:72%;background:#38bdf8"></div></div>
+                                    </div>
+                                    <div class="mockup-row">
+                                        <div class="mockup-row-left">
+                                            <div class="mockup-dot-sm" style="background:#f43f5e"></div>
+                                            <span class="mockup-row-name">Rent</span>
+                                        </div>
+                                        <span class="mockup-row-val">$1,200</span>
+                                        <span class="mockup-row-val">$1,200</span>
+                                        <div class="mockup-progress"><div class="mockup-progress-fill" style="width:100%;background:#f43f5e"></div></div>
+                                    </div>
+                                    <div class="mockup-row">
+                                        <div class="mockup-row-left">
+                                            <div class="mockup-dot-sm" style="background:#a78bfa"></div>
+                                            <span class="mockup-row-name">Emergency Fund</span>
+                                        </div>
+                                        <span class="mockup-row-val">$500</span>
+                                        <span class="mockup-row-val">$500</span>
+                                        <div class="mockup-progress"><div class="mockup-progress-fill" style="width:100%;background:#a78bfa"></div></div>
+                                    </div>
+                                </div>
+                                <div class="mockup-chart">
+                                    <div class="mockup-chart-title">Overview</div>
+                                    <div class="mockup-donut-wrap">
+                                        <div class="mockup-donut">
+                                            <div class="mockup-donut-inner"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Content Grid -->
-            <div class="content-grid">
-                <!-- Left Column: Budget Spreadsheets -->
-                <div class="left-column">
-                    <!-- Financial Overview Spreadsheet Section -->
-                    <section class="financial-overview-section">
-                        <!-- Budget Summary -->
-                        <div class="budget-summary-section">
-                            <div class="summary-row total-income">
-                                <span class="summary-label">Income</span>
-                                <span class="summary-value" id="summaryTotalIncome">$0.00</span>
-                            </div>
-                            <div class="summary-row total-expenses">
-                                <span class="summary-label">Expenses</span>
-                                <span class="summary-value" id="summaryTotalExpenses">$0.00</span>
-                            </div>
-                            <div class="summary-row total-bills">
-                                <span class="summary-label">Bills</span>
-                                <span class="summary-value" id="summaryTotalBills">$0.00</span>
-                            </div>
-                            <div class="summary-row total-savings">
-                                <span class="summary-label">Savings</span>
-                                <span class="summary-value" id="summaryTotalSavings">$0.00</span>
-                            </div>
-                            <div class="summary-row total-debt">
-                                <span class="summary-label">Debt</span>
-                                <span class="summary-value" id="summaryTotalDebt">$0.00</span>
-                            </div>
-                            <div class="summary-row remaining positive" id="remainingRow">
-                                <span class="summary-label">Left</span>
-                                <span class="summary-value" id="summaryRemaining">$0.00</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Income Section -->
-                        <div class="spreadsheet-section income">
-                            <h2 class="section-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                </svg>
-                                Income
-                                <button type="button" class="add-item-btn" data-type="income" aria-label="Add income item">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 5v14M5 12h14"/>
-                                    </svg>
-                                </button>
-                            </h2>
-                            <div class="spreadsheet-table">
-                                <div class="spreadsheet-header">
-                                    <span>Name</span>
-                                    <span>Amount</span>
-                                    <span></span>
-                                    <span></span>
-                                </div>
-                                <div class="spreadsheet-body" id="incomeSpreadsheet">
-                                    <!-- Income rows rendered by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Expenses Section -->
-                        <div class="spreadsheet-section expenses-section">
-                            <h2 class="section-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                                </svg>
-                                Expenses
-                                <button type="button" class="add-item-btn" data-type="variable" aria-label="Add expense item">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 5v14M5 12h14"/>
-                                    </svg>
-                                </button>
-                            </h2>
-                            <div class="spreadsheet-table">
-                                <div class="spreadsheet-header">
-                                    <span>Name</span>
-                                    <span>Planned</span>
-                                    <span>Actual</span>
-                                    <span></span>
-                                    <span></span>
-                                </div>
-                                <div class="spreadsheet-body" id="expensesSpreadsheet">
-                                    <!-- Expense rows rendered by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bills Section -->
-                        <div class="spreadsheet-section bills-section">
-                            <h2 class="section-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/>
-                                </svg>
-                                Bills
-                                <button type="button" class="add-item-btn" data-type="fixed" aria-label="Add bill item">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 5v14M5 12h14"/>
-                                    </svg>
-                                </button>
-                            </h2>
-                            <div class="spreadsheet-table">
-                                <div class="spreadsheet-header">
-                                    <span>Name</span>
-                                    <span>Planned</span>
-                                    <span>Actual</span>
-                                    <span></span>
-                                    <span></span>
-                                </div>
-                                <div class="spreadsheet-body" id="billsSpreadsheet">
-                                    <!-- Bills rows rendered by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Savings Section -->
-                        <div class="spreadsheet-section savings-section">
-                            <h2 class="section-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/>
-                                </svg>
-                                Savings
-                                <button type="button" class="add-item-btn" data-type="savings" aria-label="Add savings item">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 5v14M5 12h14"/>
-                                    </svg>
-                                </button>
-                            </h2>
-                            <div class="spreadsheet-table">
-                                <div class="spreadsheet-header">
-                                    <span>Name</span>
-                                    <span>Planned</span>
-                                    <span>Actual</span>
-                                    <span></span>
-                                    <span></span>
-                                </div>
-                                <div class="spreadsheet-body" id="savingsSpreadsheet">
-                                    <!-- Savings rows rendered by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Debt Section -->
-                        <div class="spreadsheet-section debt-section">
-                            <h2 class="section-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                    <line x1="1" y1="10" x2="23" y2="10"/>
-                                </svg>
-                                Debt
-                                <button type="button" class="add-item-btn" data-type="debt" aria-label="Add debt item">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 5v14M5 12h14"/>
-                                    </svg>
-                                </button>
-                            </h2>
-                            <div class="spreadsheet-table">
-                                <div class="spreadsheet-header">
-                                    <span>Name</span>
-                                    <span>Planned</span>
-                                    <span>Actual</span>
-                                    <span></span>
-                                    <span></span>
-                                </div>
-                                <div class="spreadsheet-body" id="debtSpreadsheet">
-                                    <!-- Debt rows rendered by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-
-                        
-                    </section>
+    <!-- Stats -->
+    <section class="stats-section" aria-labelledby="stats-heading">
+        <h2 class="visually-hidden" id="stats-heading">Key features at a glance</h2>
+        <div class="container">
+            <div class="stats-grid stagger">
+                <div class="stat-item reveal">
+                    <div class="stat-value gradient-text">100%</div>
+                    <div class="stat-label">Local storage — no servers</div>
                 </div>
-
-                <!-- Right Column: Charts & Transactions -->
-                <div class="right-column">
-                    <section class="tools-section" id="workspaceToolsSection" aria-label="Workspace and settings tools">
-                        <div class="mobile-workspace-nav" role="tablist" aria-label="Mobile workspace panels">
-                            <button type="button" class="mobile-workspace-tab is-active" data-mobile-panel-target="tools" role="tab" aria-selected="true">Settings</button>
-                            <button type="button" class="mobile-workspace-tab" data-mobile-panel-target="notes" role="tab" aria-selected="false">Notes</button>
-                            <button type="button" class="mobile-workspace-tab" data-mobile-panel-target="insights" role="tab" aria-selected="false">Insights</button>
-                        </div>
-
-                        <div class="card tools-card is-mobile-panel-active" data-mobile-panel-id="tools">
-                            <h2 class="section-title">
-                                Workspace
-                                <button type="button" class="mobile-sheet-close" id="closeMobileSettingsBtn" aria-label="Close settings panel">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M18 6L6 18M6 6l12 12"/>
-                                    </svg>
-                                </button>
-                            </h2>
-                            <div class="mobile-settings-preferences" aria-label="Mobile settings">
-                                <h3 class="mobile-settings-heading">Settings</h3>
-                                <div class="mobile-settings-grid">
-                                    <div class="mobile-setting-field">
-                                        <label for="mobileThemePreset">Interface mode</label>
-                                        <select id="mobileThemePreset" class="currency-selector theme-selector" aria-label="Select interface theme on mobile">
-                                            <option value="corporate">Corporate Clean</option>
-                                            <option value="warm">Warm Studio</option>
-                                            <option value="midnight">Midnight Console</option>
-                                        </select>
-                                    </div>
-                                    <div class="mobile-setting-field">
-                                        <label for="mobileCurrencySelector">Currency</label>
-                                        <select id="mobileCurrencySelector" class="currency-selector" aria-label="Select currency on mobile">
-                                            <!-- Options mirrored by JavaScript -->
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="workspace-meta">
-                                <span class="meta-pill" id="currentPeriodBadge">----</span>
-                                <span class="meta-pill" id="itemCountBadge">0 items</span>
-                            </div>
-                            <p class="workspace-status" id="lastUpdatedText">Last saved: not yet</p>
-                            <div class="tools-grid">
-                                <button type="button" class="btn btn-secondary tool-btn" id="copyPrevMonthBtn">Copy Prev Month</button>
-                                <button type="button" class="btn btn-secondary tool-btn" id="exportDataBtn">Export Backup</button>
-                                <button type="button" class="btn btn-secondary tool-btn" id="importDataBtn">Import Backup</button>
-                                <button type="button" class="btn btn-secondary tool-btn danger" id="resetCurrentMonthBtn">Reset Month</button>
-                                <button type="button" class="btn btn-secondary tool-btn danger" id="clearAllDataBtn">Clear All Data</button>
-                            </div>
-                            <div class="backup-security">
-                                <label class="backup-toggle">
-                                    <input type="checkbox" id="backupEncryptToggle">
-                                    <span>Encrypt exported backup</span>
-                                </label>
-                                <label for="backupPassphrase" class="backup-pass-label">Backup passphrase</label>
-                                <input type="password" id="backupPassphrase" class="backup-passphrase" autocomplete="new-password" placeholder="Optional for export, required for encrypted import">
-                                <p class="backup-security-note">Uses AES-GCM encryption in your browser (passphrase is never stored).</p>
-                            </div>
-                            <input type="file" id="importDataInput" accept="application/json,.json" hidden>
-                            <p class="workspace-note">Data stays in this browser. Imports are validated before saving.</p>
-                        </div>
-
-                        <div class="card notes-card" data-mobile-panel-id="notes">
-                            <h2 class="section-title">Month Notes</h2>
-                            <label for="monthNotes" class="visually-hidden">Month notes</label>
-                            <textarea id="monthNotes" class="notes-textarea" maxlength="1000" placeholder="Track reminders, bill due dates, goals, or what changed this month..."></textarea>
-                            <div class="notes-footer">
-                                <span class="notes-helper">Auto-saves locally</span>
-                                <span class="notes-counter" id="notesCharCount">0/1000</span>
-                            </div>
-                        </div>
-
-                        <div class="card insights-card" data-mobile-panel-id="insights">
-                            <h2 class="section-title">Insights</h2>
-                            <div class="insights-list">
-                                <div class="insight-row"><span>Budget health</span><strong id="insightBudgetHealth">-</strong></div>
-                                <div class="insight-row"><span>Planned utilization</span><strong id="insightPlannedUtilization">-</strong></div>
-                                <div class="insight-row"><span>Actual utilization</span><strong id="insightActualUtilization">-</strong></div>
-                                <div class="insight-row"><span>Largest planned</span><strong id="insightLargestPlanned">-</strong></div>
-                                <div class="insight-row"><span>Largest actual</span><strong id="insightLargestActual">-</strong></div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Budget Charts Section -->
-                    <section class="charts-section overview-charts">
-                        <div class="card chart-card">
-                            <h2 class="section-title">Budget Overview</h2>
-                            <div class="chart-container">
-                                <canvas id="donutChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="card chart-card">
-                            <h2 class="section-title">Allocation</h2>
-                            <div class="chart-container">
-                                <canvas id="allocationChart"></canvas>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Budget Charts Section -->
-                    <section class="charts-section comparison-charts">
-                        <div class="card chart-card full-width">
-                            <h2 class="section-title">Planned vs Actual</h2>
-                            <div class="chart-container">
-                                <canvas id="plannedVsActualChart"></canvas>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="ledger-section">
-                        <div class="card ledger-card">
-                            <h2 class="section-title">Transaction Ledger</h2>
-                            <form id="transactionForm" class="ledger-form" novalidate>
-                                <div class="ledger-form-grid">
-                                    <div class="form-group">
-                                        <label for="transactionAmount">Amount</label>
-                                        <input type="number" id="transactionAmount" name="transactionAmount" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="transactionType">Type</label>
-                                        <select id="transactionType" name="transactionType" required>
-                                            <option value="expense">Expense</option>
-                                            <option value="income">Income</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="transactionCategory">Budget Category</label>
-                                        <select id="transactionCategory" name="transactionCategory" required>
-                                            <option value="">Select a category</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="transactionDate">Date</label>
-                                        <input type="date" id="transactionDate" name="transactionDate" required>
-                                    </div>
-                                    <div class="form-group ledger-form-wide">
-                                        <label for="transactionDescription">Description</label>
-                                        <input type="text" id="transactionDescription" name="transactionDescription" maxlength="120" placeholder="e.g., Supermarket, Rent payment, Salary">
-                                    </div>
-                                </div>
-                                <div class="ledger-form-actions">
-                                    <button type="submit" class="btn btn-primary ledger-submit-btn">Add Transaction</button>
-                                </div>
-                            </form>
-
-                            <div class="ledger-summary-row" aria-label="Transaction summary">
-                                <div class="ledger-summary-chip">
-                                    <span>Income</span>
-                                    <strong id="ledgerIncomeTotal">$0.00</strong>
-                                </div>
-                                <div class="ledger-summary-chip">
-                                    <span>Expenses</span>
-                                    <strong id="ledgerExpenseTotal">$0.00</strong>
-                                </div>
-                                <div class="ledger-summary-chip">
-                                    <span>Balance</span>
-                                    <strong id="ledgerBalanceTotal">$0.00</strong>
-                                </div>
-                                <div class="ledger-summary-chip">
-                                    <span>Count</span>
-                                    <strong id="ledgerTransactionCount">0</strong>
-                                </div>
-                            </div>
-
-                            <div class="filter-section ledger-filters" id="ledgerFilters">
-                                <div class="filter-controls">
-                                    <div class="filter-group">
-                                        <label for="ledgerFilterType">Type</label>
-                                        <select id="ledgerFilterType">
-                                            <option value="all">All</option>
-                                            <option value="income">Income</option>
-                                            <option value="expense">Expense</option>
-                                        </select>
-                                    </div>
-                                    <div class="filter-group">
-                                        <label for="ledgerSearch">Search</label>
-                                        <input type="search" id="ledgerSearch" placeholder="Description or category">
-                                    </div>
-                                    <div class="filter-group">
-                                        <label for="ledgerSort">Sort</label>
-                                        <select id="ledgerSort">
-                                            <option value="newest">Newest first</option>
-                                            <option value="oldest">Oldest first</option>
-                                            <option value="amount-desc">Amount high-low</option>
-                                            <option value="amount-asc">Amount low-high</option>
-                                        </select>
-                                    </div>
-                                    <button type="button" class="btn btn-secondary ledger-clear-btn" id="ledgerClearFilters">Clear</button>
-                                </div>
-                            </div>
-
-                            <div class="transactions-list" id="transactionsList" aria-live="polite"></div>
-                            <div class="empty-state" id="emptyState" hidden>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                    <path d="M21 8V7a2 2 0 0 0-2-2h-3l-2-2H10L8 5H5a2 2 0 0 0-2 2v1"/>
-                                    <rect x="3" y="8" width="18" height="13" rx="2"/>
-                                    <path d="M8 13h8M8 17h5"/>
-                                </svg>
-                                <p>No transactions for this period yet.</p>
-                            </div>
-                        </div>
-                    </section>
+                <div class="stat-item reveal">
+                    <div class="stat-value gradient-text">AES-GCM</div>
+                    <div class="stat-label">Encrypted backup exports</div>
+                </div>
+                <div class="stat-item reveal">
+                    <div class="stat-value gradient-text">5+</div>
+                    <div class="stat-label">Budget categories tracked</div>
+                </div>
+                <div class="stat-item reveal">
+                    <div class="stat-value gradient-text">3</div>
+                    <div class="stat-label">Beautiful visual themes</div>
                 </div>
             </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <p>Personal Finance Dashboard &copy; 2024</p>
-        </footer>
-    </div>
-
-    <!-- Add Budget Item Modal -->
-    <div class="modal" id="budgetItemModal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add New Item</h3>
-                <button type="button" class="modal-close" id="closeBudgetItemModal" aria-label="Close">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                        <path d="M18 6L6 18M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            <form id="budgetItemForm">
-                <input type="hidden" id="budgetItemType" value="">
-                <div class="form-group">
-                    <label for="budgetItemName">Name</label>
-                    <input type="text" id="budgetItemName" placeholder="e.g., New Income Source" required>
-                </div>
-                <div class="form-group">
-                    <label for="budgetItemPlanned">Planned</label>
-                    <input type="number" id="budgetItemPlanned" placeholder="0.00" step="0.01" required>
-                </div>
-                <div class="form-group" id="actualFieldGroup" style="display: none;">
-                    <label for="budgetItemActual">Actual</label>
-                    <input type="number" id="budgetItemActual" placeholder="0.00" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="budgetItemColor">Color</label>
-                    <input type="color" id="budgetItemColor" value="#4299e1">
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="cancelBudgetItem">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Item</button>
-                </div>
-            </form>
         </div>
-    </div>
+    </section>
 
-    <!-- Notification Toast -->
-    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
-        <span class="toast-message"></span>
-    </div>
+    <!-- Features -->
+    <section class="section" id="features" aria-labelledby="features-heading">
+        <div class="container">
+            <div class="reveal">
+                <div class="section-tag">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1l1.85 3.75L14 5.6l-3 2.9.7 4.1L8 10.6l-3.7 2 .7-4.1-3-2.9 4.15-.85z"/></svg>
+                    Everything you need
+                </div>
+                <h2 class="section-title" id="features-heading">
+                    Finance management,<br><span class="gradient-text">beautifully simplified</span>
+                </h2>
+                <p class="section-sub">Every feature you need to take control of your personal finances, with none of the complexity.</p>
+            </div>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/transactions.js"></script>
-    <script src="js/charts.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
+            <div class="features-grid">
+                <div class="feature-card fi-teal reveal">
+                    <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+                    <h3>Budget Planning</h3>
+                    <p>Set planned amounts for income, expenses, bills, savings, and debt. Track actual vs planned with instant feedback.</p>
+                </div>
+                <div class="feature-card fi-violet reveal">
+                    <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg></div>
+                    <h3>Transaction Ledger</h3>
+                    <p>Log every transaction, categorize spending, and filter by type, date, or description to understand where your money goes.</p>
+                </div>
+                <div class="feature-card fi-blue reveal">
+                    <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+                    <h3>Bills & Due Dates</h3>
+                    <p>Track recurring bills with due dates. Overdue bills are highlighted so you never miss a payment deadline again.</p>
+                </div>
+                <div class="feature-card fi-amber reveal">
+                    <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+                    <h3>Visual Charts</h3>
+                    <p>Donut charts, allocation bars, and planned vs actual comparisons make your budget data instantly understandable.</p>
+                </div>
+                <div class="feature-card fi-pink reveal">
+                    <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                    <h3>Encrypted Backups</h3>
+                    <p>Export your budget data with optional AES-GCM encryption. Import it back on any device — your passphrase is never stored.</p>
+                </div>
+                <div class="feature-card fi-green reveal">
+                    <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+                    <h3>Smart Insights</h3>
+                    <p>Budget health score, utilization rates, and largest expense tracking give you clear signals about your financial habits.</p>
+                </div>
+            </div>
+
+            <!-- Privacy Banner -->
+            <div class="privacy-banner reveal">
+                <div class="privacy-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div>
+                    <h3>Your data never leaves your device</h3>
+                    <p>FinanceOS stores everything in your browser's localStorage. No accounts, no servers, no tracking. Your financial data stays entirely private. Encrypted backups let you safely move data between devices on your own terms.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section" id="how-it-works" style="background:rgba(255,255,255,0.01);border-top:1px solid var(--border);" aria-labelledby="how-heading">
+        <div class="container">
+            <div class="reveal" style="text-align:center">
+                <div class="section-tag" style="margin:0 auto 1rem;">
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="7"/><path d="M8 5v3l2 2"/></svg>
+                    Simple by design
+                </div>
+                <h2 class="section-title" id="how-heading">Up and running in <span class="gradient-text">60 seconds</span></h2>
+                <p class="section-sub" style="margin:0 auto">No installation, no signup, no configuration. Just open and start budgeting.</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card reveal">
+                    <div class="step-number" aria-label="Step 1">1</div>
+                    <h3>Open the Dashboard</h3>
+                    <p>Click "Open Dashboard" to launch your personal finance workspace instantly. Works entirely in your browser — no installation required.</p>
+                </div>
+                <div class="step-card reveal">
+                    <div class="step-number" aria-label="Step 2">2</div>
+                    <h3>Add Your Budget</h3>
+                    <p>Enter your income, add expense and bill categories with planned amounts. Set savings goals and track any debts you're paying off.</p>
+                </div>
+                <div class="step-card reveal">
+                    <div class="step-number" aria-label="Step 3">3</div>
+                    <h3>Track & Visualize</h3>
+                    <p>Log transactions as they happen. Watch charts update in real-time and get insights into your spending patterns each month.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta-section" aria-labelledby="cta-heading">
+        <div class="container">
+            <div class="reveal">
+                <h2 id="cta-heading">Ready to take control of your <span class="gradient-text">finances?</span></h2>
+                <p>Free forever. Private by default. Open now.</p>
+                <div class="cta-buttons">
+                    <a href="dashboard.html" class="btn btn-primary btn-lg" id="ctaMain">
+                        Open Dashboard Free
+                        <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M3.75 3.75v1.5h6.44L3.22 12.22l1.06 1.06 6.97-6.97v6.44h1.5V3.75z"/></svg>
+                    </a>
+                    <a href="#features" class="btn btn-outline btn-lg">Learn more</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer" role="contentinfo">
+        <div class="container">
+            <div class="footer-inner">
+                <span class="footer-logo gradient-text">FinanceOS</span>
+                <p class="footer-copy">© 2026 FinanceOS. All data stays local in your browser.</p>
+                <div class="footer-links">
+                    <a href="dashboard.html">Dashboard</a>
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How it works</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Visually hidden utility -->
+    <style>.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 40);
+        }, { passive: true });
+
+        // Scroll reveal with IntersectionObserver
+        const revealEls = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+        revealEls.forEach(el => observer.observe(el));
+    </script>
 </body>
 </html>
