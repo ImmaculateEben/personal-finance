@@ -1028,7 +1028,92 @@ textarea {
     display: block;
 }
 
+
+/* ── Mobile: Spreadsheet layout fixes ──────────────────────── */
+@media (max-width: 768px) {
+
+    /* Tighter column widths so name column gets more room */
+    .spreadsheet-header,
+    .spreadsheet-row {
+        grid-template-columns: minmax(0, 1fr) 68px 68px 22px 22px;
+        gap: 0.2rem;
+        padding: 0.4rem 0.65rem;
+    }
+
+    .income .spreadsheet-header,
+    .spreadsheet-row.income-row {
+        grid-template-columns: minmax(0, 1fr) 72px 22px 22px;
+    }
+
+    /* Category name: allow it to fill and truncate cleanly */
+    .category-name {
+        font-size: 0.8125rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    /* Amount inputs a bit smaller */
+    .planned-input,
+    .actual-input {
+        font-size: 0.8rem;
+    }
+
+    /* Row action buttons: hidden until row tapped */
+    .row-add-btn,
+    .row-delete-btn {
+        width: 20px !important;
+        height: 20px !important;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    /* Show on data-actions-open (set by ui.js on mobile tap) */
+    .spreadsheet-row[data-actions-open="true"] .row-add-btn,
+    .spreadsheet-row[data-actions-open="true"] .row-delete-btn {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    /* Spreadsheet body: allow more rows visible */
+    .spreadsheet-body {
+        max-height: 200px;
+    }
+
+    /* Spreadsheet section title compact */
+    .section-title {
+        padding: 0.65rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+}
+
+/* Very small screens — even tighter */
+@media (max-width: 420px) {
+
+    .spreadsheet-header,
+    .spreadsheet-row {
+        grid-template-columns: minmax(0, 1fr) 62px 62px 0px 0px;
+        gap: 0.15rem;
+        padding: 0.35rem 0.5rem;
+    }
+
+    /* Hide action button columns entirely at very small sizes */
+    .row-add-btn,
+    .row-delete-btn {
+        display: none !important;
+    }
+
+    .income .spreadsheet-header,
+    .spreadsheet-row.income-row {
+        grid-template-columns: minmax(0, 1fr) 66px 0px 0px;
+    }
+}
+
 /* Print ──────────────────────────────────────────────────── */
+
 @media print {
 
     .sidebar,
