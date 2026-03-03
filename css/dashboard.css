@@ -418,7 +418,9 @@
     overflow-x: hidden;
     padding: 1.25rem;
     min-width: 0;
-    /* Prevent content from hiding behind fixed bottom nav on mobile */
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 /* ── KPI Strip ────────────────────────────────────────────── */
@@ -426,7 +428,6 @@
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.875rem;
-    /* margin-bottom handled by tab-panel flex gap */
 }
 
 .kpi-card {
@@ -576,12 +577,12 @@
 /* ── Tab Panels ───────────────────────────────────────────── */
 .tab-panel {
     display: none;
+    min-width: 0;
 }
 
 .tab-panel.is-active {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    display: block;
+    min-width: 0;
 }
 
 /* Budget panel grid layout */
@@ -589,7 +590,14 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.875rem;
-    /* no margin-bottom — parent gap handles spacing */
+    margin-top: 0;
+    /* gap from .tab-panel.is-active's block flow */
+}
+
+/* Budget summary section spacing */
+.budget-summary-section {
+    margin-bottom: 0;
+    /* gap from dashboard-main flex handles it */
 }
 
 .budget-overview-area {
@@ -934,9 +942,10 @@
     }
 
     .dashboard-main {
-        padding: 0.875rem;
+        padding: 0.75rem;
         padding-bottom: calc(70px + env(safe-area-inset-bottom) + 1rem);
         width: 100%;
+        gap: 0.625rem;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -974,8 +983,12 @@
         gap: 0.625rem;
     }
 
-    /* Uniform spacing between panel children — override tab-panel gap */
+    /* Tab panel content: use standard block layout on mobile
+       (dashboard-main flex gap handles spacing between kpi-strip
+       and each tab panel, and block flow handles panel internals) */
     .tab-panel.is-active {
+        display: flex;
+        flex-direction: column;
         gap: 0.625rem;
     }
 
