@@ -678,7 +678,215 @@ textarea {
     color: var(--danger-color);
 }
 
+/* ── Custom Dialog System ────────────────────────────────── */
+
+/* Overlay backdrop */
+.dialog-system-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    pointer-events: none;
+    transition:
+        background var(--transition-normal),
+        backdrop-filter var(--transition-normal);
+}
+
+.dialog-system-overlay--visible {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: auto;
+}
+
+/* Dialog box */
+.dialog-box {
+    position: relative;
+    background: var(--ui-paper, var(--bg-elevated));
+    border: 1px solid var(--ui-line, var(--border-strong));
+    border-radius: var(--radius-xl);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--ui-line, var(--border));
+    width: 100%;
+    max-width: 420px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transform: scale(1);
+    opacity: 1;
+    transition:
+        transform var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1),
+        opacity var(--transition-normal);
+}
+
+/* Enter animation */
+.dialog-box.dialog-entering {
+    transform: scale(0.88) translateY(12px);
+    opacity: 0;
+}
+
+/* Leave animation */
+.dialog-box.dialog-leaving {
+    transform: scale(0.92) translateY(8px);
+    opacity: 0;
+}
+
+/* Icon area */
+.dialog-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.75rem 1.5rem 0.5rem;
+}
+
+.dialog-icon-wrap::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--dialog-accent, var(--primary-color));
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.dialog-icon {
+    width: 44px;
+    height: 44px;
+    stroke: var(--dialog-accent, var(--primary-color));
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--dialog-accent, var(--primary-color)) 40%, transparent));
+}
+
+/* Body */
+.dialog-body {
+    padding: 0.75rem 1.75rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+}
+
+.dialog-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ui-ink, var(--text-primary));
+    line-height: 1.3;
+}
+
+.dialog-message {
+    font-size: 0.9rem;
+    color: var(--ui-sub, var(--text-secondary));
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Prompt input */
+.dialog-input {
+    margin-top: 0.5rem;
+    width: 100%;
+    padding: 0.6rem 0.875rem;
+    border: 1px solid var(--ui-line, var(--border-strong));
+    border-radius: var(--radius);
+    background: var(--ui-paper-2, var(--input-bg));
+    color: var(--ui-ink, var(--text-primary));
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dialog-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 201, 167, 0.18);
+}
+
+/* Action buttons row */
+.dialog-actions {
+    display: flex;
+    gap: 0.625rem;
+    padding: 1.25rem 1.75rem 1.5rem;
+    justify-content: center;
+}
+
+.dialog-btn {
+    flex: 1;
+    max-width: 160px;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+/* Cancel / secondary */
+.dialog-btn-cancel {
+    background: var(--ui-paper-2, var(--bg-glass));
+    border-color: var(--ui-line, var(--border));
+    color: var(--ui-sub, var(--text-secondary));
+}
+
+.dialog-btn-cancel:hover {
+    background: var(--ui-line, var(--bg-glass-hover));
+    color: var(--ui-ink, var(--text-primary));
+}
+
+/* Confirm / primary — uses --dialog-accent */
+.dialog-btn-confirm {
+    background: var(--dialog-accent, var(--primary-color));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--dialog-accent, var(--primary-color)) 35%, transparent);
+}
+
+.dialog-btn-confirm:hover {
+    filter: brightness(1.12);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--dialog-accent, var(--primary-color)) 45%, transparent);
+}
+
+.dialog-btn-confirm:active {
+    filter: brightness(0.95);
+    transform: translateY(0);
+}
+
+.dialog-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .dialog-box {
+        max-width: 96vw;
+    }
+
+    .dialog-body {
+        padding: 0.5rem 1.25rem 0.25rem;
+    }
+
+    .dialog-actions {
+        padding: 1rem 1.25rem 1.25rem;
+        flex-direction: column-reverse;
+    }
+
+    .dialog-btn {
+        max-width: 100%;
+    }
+}
+
 /* ── Modal ───────────────────────────────────────────────── */
+
 .modal {
     display: none;
     position: fixed;

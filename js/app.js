@@ -391,15 +391,16 @@ const App = {
         UI.focusInput('transactionAmount');
     },
 
-    handleDeleteTransaction(id) {
+    async handleDeleteTransaction(id) {
         const txn = TransactionManager.getById(id);
         if (!txn) {
             UI.showNotification('Transaction not found', 'error');
             return;
         }
 
-        const message = 'Delete ' + txn.description + ' (' + formatCurrency(txn.amount) + ')?';
-        if (!confirm(message)) return;
+        const message = 'Delete "' + txn.description + '" (' + formatCurrency(txn.amount) + ')? This cannot be undone.';
+        const ok = await Dialog.confirm(message, { type: 'warning', title: 'Delete Transaction', confirmLabel: 'Delete', cancelLabel: 'Keep' });
+        if (!ok) return;
 
         const result = TransactionManager.delete(id);
         if (result.success) {
@@ -669,7 +670,7 @@ const App = {
         return { month: previous.getMonth(), year: previous.getFullYear() };
     },
 
-    handleCopyPreviousMonth() {
+    async handleCopyPreviousMonth() {
         const month = Storage.getSelectedMonth();
         const year = Storage.getSelectedYear();
         const previous = this.getPreviousPeriod(month, year);
@@ -677,13 +678,15 @@ const App = {
         const targetKey = Storage.getPeriodKey(month, year);
 
         if (!Storage.listBudgetPeriods().includes(sourceKey)) {
-            UI.showNotification('No saved budget found for ' + sourceKey, 'error');
+            await Dialog.alert('No saved budget found for ' + sourceKey, 'warning', { title: 'No Budget Found' });
             return;
         }
 
-        if (!confirm('Copy budget categories from ' + sourceKey + ' into ' + targetKey + '? This will overwrite the current month data.')) {
-            return;
-        }
+        const ok = await Dialog.confirm(
+            'Copy budget categories from ' + sourceKey + ' into ' + targetKey + '?\nThis will overwrite the current month\'s data.',
+            { type: 'warning', title: 'Copy Previous Month', confirmLabel: 'Copy', cancelLabel: 'Cancel' }
+        );
+        if (!ok) return;
 
         const success = Storage.copyBudgetPeriod(previous.month, previous.year, month, year, { includeNotes: false });
         if (success) {
@@ -694,9 +697,13 @@ const App = {
         }
     },
 
-    handleResetCurrentMonth() {
+    async handleResetCurrentMonth() {
         const periodKey = Storage.getPeriodKey();
-        if (!confirm('Reset all budget items and notes for ' + periodKey + '?')) return;
+        const ok = await Dialog.confirm(
+            'Reset all budget items, actuals, and notes for ' + periodKey + '?\nThis cannot be undone.',
+            { type: 'error', title: 'Reset Month', confirmLabel: 'Reset', cancelLabel: 'Cancel' }
+        );
+        if (!ok) return;
 
         const success = Storage.resetBudgetPeriod();
         if (success) {
@@ -707,9 +714,12 @@ const App = {
         }
     },
 
-    handleClearAllData() {
-        if (!confirm('Clear ALL saved finance data (all months, preferences, transactions, and backups in this browser)?')) return;
-        if (!confirm('This cannot be undone. Continue?')) return;
+    async handleClearAllData() {
+        const ok = await Dialog.confirm(
+            'Clear ALL saved finance data?\nThis includes all months, transactions, preferences, and backups stored in this browser.\n\nThis cannot be undone.',
+            { type: 'error', title: 'Clear All Data', confirmLabel: 'Clear Everything', cancelLabel: 'Cancel' }
+        );
+        if (!ok) return;
 
         Storage.clearAll();
         this.refreshAll({ forceNotesSync: true, forceTransactionDateSync: true });
@@ -787,7 +797,11 @@ const App = {
 
         let passphrase = this.getBackupPassphrase();
         if (!passphrase) {
-            passphrase = prompt('This backup is encrypted. Enter the passphrase to import:') || '';
+            passphrase = await Dialog.prompt(
+                'This backup is encrypted. Enter the passphrase to decrypt and import it.',
+                '',
+                { title: 'Encrypted Backup', placeholder: 'Enter passphrase…', confirmLabel: 'Decrypt & Import' }
+            );
         }
         if (!passphrase) {
             throw new Error('Passphrase is required to import this encrypted backup');
@@ -804,7 +818,10 @@ const App = {
             return;
         }
 
-        const confirmImport = confirm('Import backup file and replace matching saved data in this browser?');
+        const confirmImport = await Dialog.confirm(
+            'Import this backup file?\nMatching saved data in this browser will be replaced.',
+            { type: 'question', title: 'Import Backup', confirmLabel: 'Import', cancelLabel: 'Cancel' }
+        );
         if (!confirmImport) return;
 
         try {

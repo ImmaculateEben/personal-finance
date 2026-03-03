@@ -311,7 +311,13 @@ const UI = {
                 const categoryId = deleteBtn.dataset.categoryId;
                 const category = Storage.getBudgetCategories().find(c => c.id === categoryId);
                 const label = category ? category.name : 'this item';
-                if (confirm('Delete "' + label + '" from this month?')) {
+                Dialog.confirm('Delete "' + label + '" from this month?', {
+                    type: 'warning',
+                    title: 'Delete Budget Item',
+                    confirmLabel: 'Delete',
+                    cancelLabel: 'Keep'
+                }).then(ok => {
+                    if (!ok) return;
                     if (Storage.deleteBudgetCategory(categoryId)) {
                         this.refreshBudgetSection();
                         this.renderTransactionCategoryOptions();
@@ -319,7 +325,7 @@ const UI = {
                     } else {
                         this.showNotification('Unable to delete item', 'error');
                     }
-                }
+                });
                 return;
             }
 
@@ -537,9 +543,9 @@ const UI = {
         this.renderBudgetSummary();
     },
 
-    renderCategoryDatalist() {},
-    renderCategoriesList() {},
-    scrollToTop() {},
+    renderCategoryDatalist() { },
+    renderCategoriesList() { },
+    scrollToTop() { },
 
     focusInput(inputId) {
         const input = document.getElementById(inputId);
@@ -558,7 +564,7 @@ const UI = {
         }
     },
 
-    addAnimationStyles() {}
+    addAnimationStyles() { }
 };
 
 window.UI = UI;

@@ -368,14 +368,18 @@
                 } else {
                     // fallback: fire delete directly
                     const catId = row.dataset.categoryId;
-                    if (catId && window.App) {
-                        const category = window.Storage && Storage.getBudgetCategories().find(c => c.id === catId);
+                    if (catId && window.Storage) {
+                        const category = Storage.getBudgetCategories().find(c => c.id === catId);
                         const label = category ? category.name : 'this item';
-                        if (confirm(`Delete "${label}" from this month?`)) {
+                        Dialog.confirm('Delete "' + label + '" from this month?', {
+                            type: 'warning', title: 'Delete Item',
+                            confirmLabel: 'Delete', cancelLabel: 'Keep'
+                        }).then(ok => {
+                            if (!ok) return;
                             if (Storage.deleteBudgetCategory(catId)) {
-                                if (window.UI) { UI.refreshBudgetSection(); }
+                                if (window.UI) UI.refreshBudgetSection();
                             }
-                        }
+                        });
                     }
                     closeSwipe(row, true);
                 }
