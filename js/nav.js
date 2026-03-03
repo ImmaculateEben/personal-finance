@@ -330,6 +330,159 @@
         period.style.zIndex = visible ? '' : '100';
     });
 
+    /* ══════════════════════════════════════════
+       11. SWIPE-TO-DELETE (Mobile)
+           Touch left on a spreadsheet row to
+           reveal the red delete button.
+    ══════════════════════════════════════════ */
+    (function initSwipeToDelete() {
+        const SWIPE_THRESHOLD = 55;   // px needed to trigger open
+        const SWIPE_CLOSE_BACK = 15;   // px rightward swipe that closes
+
+        let activeRow = null;   // currently swiped-open row
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isSwiping = false;
+
+        /** Inject the delete action element into a row if not there yet */
+        function ensureDeleteAction(row) {
+            if (row.querySelector('.swipe-delete-action')) return;
+            const categoryId = row.dataset.categoryId || '';
+            const el = document.createElement('div');
+            el.className = 'swipe-delete-action';
+            el.setAttribute('data-category-id', categoryId);
+            el.setAttribute('role', 'button');
+            el.setAttribute('aria-label', 'Delete item');
+            el.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Delete`;
+            el.addEventListener('click', () => {
+                // Delegate to the existing row-delete-btn handler
+                const btn = row.querySelector('.row-delete-btn');
+                if (btn) {
+                    closeSwipe(row, true);
+                    setTimeout(() => btn.click(), 60);
+                } else {
+                    // fallback: fire delete directly
+                    const catId = row.dataset.categoryId;
+                    if (catId && window.App) {
+                        const category = window.Storage && Storage.getBudgetCategories().find(c => c.id === catId);
+                        const label = category ? category.name : 'this item';
+                        if (confirm(`Delete "${label}" from this month?`)) {
+                            if (Storage.deleteBudgetCategory(catId)) {
+                                if (window.UI) { UI.refreshBudgetSection(); }
+                            }
+                        }
+                    }
+                    closeSwipe(row, true);
+                }
+            });
+            row.appendChild(el);
+        }
+
+        function openSwipe(row) {
+            if (activeRow && activeRow !== row) closeSwipe(activeRow, true);
+            ensureDeleteAction(row);
+            row.classList.add('is-swiped-left');
+            activeRow = row;
+        }
+
+        function closeSwipe(row, instantly = false) {
+            if (!row) return;
+            if (instantly) {
+                row.style.transition = 'none';
+                requestAnimationFrame(() => {
+                    row.classList.remove('is-swiped-left');
+                    requestAnimationFrame(() => { row.style.transition = ''; });
+                });
+            } else {
+                row.classList.remove('is-swiped-left');
+            }
+            if (activeRow === row) activeRow = null;
+        }
+
+        function onTouchStart(e) {
+            if (e.touches.length !== 1) return;
+            const row = e.target.closest('.spreadsheet-row');
+            if (!row) return;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            isSwiping = false;
+        }
+
+        function onTouchMove(e) {
+            if (e.touches.length !== 1) return;
+            const row = e.target.closest('.spreadsheet-row');
+            if (!row) return;
+
+            const dx = e.touches[0].clientX - touchStartX;
+            const dy = e.touches[0].clientY - touchStartY;
+
+            // Only hijack mostly-horizontal swipes
+            if (!isSwiping && Math.abs(dy) > Math.abs(dx)) return;
+            if (Math.abs(dx) > 8) {
+                isSwiping = true;
+                e.preventDefault(); // stop page scroll while swiping
+            }
+        }
+
+        function onTouchEnd(e) {
+            if (!isSwiping) {
+                // Plain tap — close any open row (unless tapping its delete action)
+                if (activeRow && !e.target.closest('.swipe-delete-action')) {
+                    closeSwipe(activeRow);
+                }
+                return;
+            }
+
+            const row = e.changedTouches.length
+                ? (() => {
+                    const el = document.elementFromPoint(
+                        e.changedTouches[0].clientX,
+                        e.changedTouches[0].clientY
+                    );
+                    return el ? el.closest('.spreadsheet-row') : null;
+                })()
+                : null;
+
+            const dx = (e.changedTouches[0] || {}).clientX - touchStartX;
+
+            if (row) {
+                if (dx < -SWIPE_THRESHOLD) {
+                    openSwipe(row);
+                } else if (dx > SWIPE_CLOSE_BACK && activeRow === row) {
+                    closeSwipe(row);
+                }
+            }
+            isSwiping = false;
+        }
+
+        // Attach to the document (works for dynamically added rows)
+        document.addEventListener('touchstart', onTouchStart, { passive: true });
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', onTouchEnd, { passive: true });
+
+        // Close active swipe when tapping outside any spreadsheet
+        document.addEventListener('touchstart', (e) => {
+            if (activeRow && !e.target.closest('.spreadsheet-section')) {
+                closeSwipe(activeRow);
+            }
+        }, { passive: true });
+
+        // Re-inject on DOM mutations (rows are re-rendered by app.js often)
+        const bodyContainers = document.querySelectorAll('.spreadsheet-body');
+        if (window.MutationObserver && bodyContainers.length) {
+            const mo = new MutationObserver(() => {
+                // Close stale swiped row if it's been removed
+                if (activeRow && !document.contains(activeRow)) activeRow = null;
+            });
+            bodyContainers.forEach(c => mo.observe(c, { childList: true }));
+        }
+    })();
+
     console.log('[nav.js] Dashboard navigation initialised.');
 
 })();

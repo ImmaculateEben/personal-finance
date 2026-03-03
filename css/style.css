@@ -341,6 +341,7 @@ textarea {
 }
 
 .spreadsheet-row {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 88px 88px 26px 26px;
     padding: 0.45rem 0.85rem;
@@ -348,7 +349,63 @@ textarea {
     gap: 0.3rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     transition: background var(--transition-fast);
+    overflow: hidden;
+    /* clip swipe actions */
 }
+
+/* Swipe action slot — sits behind the row content */
+.swipe-delete-action {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--danger-color, #ef4444);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    gap: 0.25rem;
+    flex-direction: column;
+    border-radius: 0;
+    opacity: 0;
+    transform: translateX(72px);
+    transition: opacity 180ms ease, transform 180ms ease;
+    pointer-events: none;
+    user-select: none;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.swipe-delete-action svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Row content wrapper that slides during swipe */
+.row-swipe-inner {
+    display: contents;
+    /* transparent initially — only used on mobile */
+}
+
+/* When row is swiped left → slide inner left, reveal delete */
+.spreadsheet-row.is-swiped-left .swipe-delete-action {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+.spreadsheet-row.is-swiped-left {
+    background: rgba(239, 68, 68, 0.06);
+}
+
+/* Close any open swipe via cursor interaction (desktop) */
+.spreadsheet-row.is-swiped-left:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
 
 .spreadsheet-row.income-row {
     grid-template-columns: minmax(0, 1fr) 92px 26px 26px;
