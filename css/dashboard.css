@@ -426,7 +426,7 @@
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.875rem;
-    margin-bottom: 1.25rem;
+    /* margin-bottom handled by tab-panel flex gap */
 }
 
 .kpi-card {
@@ -579,7 +579,9 @@
 }
 
 .tab-panel.is-active {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 /* Budget panel grid layout */
@@ -587,7 +589,7 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.875rem;
-    margin-bottom: 0.875rem;
+    /* no margin-bottom — parent gap handles spacing */
 }
 
 .budget-overview-area {
@@ -969,7 +971,12 @@
     .charts-panel-grid,
     .settings-panel-grid {
         grid-template-columns: 1fr;
-        gap: 0.75rem;
+        gap: 0.625rem;
+    }
+
+    /* Uniform spacing between panel children — override tab-panel gap */
+    .tab-panel.is-active {
+        gap: 0.625rem;
     }
 
     .budget-summary-section {
